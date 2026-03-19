@@ -14,10 +14,8 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
   // Load messages when sessionId changes
   React.useEffect(() => {
     if (sessionId) {
-      // If this is the session we just created in this very component instance,
-      // skip loading because we already have the optimistic state.
       if (sessionId === justCreatedSessionId.current) {
-        justCreatedSessionId.current = null; // Reset for next time
+        justCreatedSessionId.current = null;
         return;
       }
       loadMessages(sessionId);
@@ -30,7 +28,6 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     setIsInitializing(true);
     try {
       const dbMessages = await getMessages(id);
-      // Map DB objects to UI message format
       const formattedMessages = dbMessages.map(item => ({
         role: item.objectData.role,
         content: item.objectData.content,
@@ -71,7 +68,6 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       } catch (error) {
         console.warn(`AI request failed (attempt ${i + 1}/${retries}):`, error);
         if (i === retries - 1) throw error;
-        // Wait a bit before retrying
         await new Promise(res => setTimeout(res, 1000 * (i + 1)));
       }
     }
@@ -84,7 +80,6 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     setInput('');
     setIsLoading(true);
 
-    // Optimistic UI update
     const userMessage = { role: 'user', content };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
@@ -92,49 +87,37 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     try {
       let currentId = sessionId;
 
-      // 1. Create session if it doesn't exist
       if (!currentId) {
-        if (creationInProgress.current) return; // Prevent double submission
+        if (creationInProgress.current) return;
         creationInProgress.current = true;
 
         try {
-          // Generate a title based on first few words
           const title = content.slice(0, 30) + (content.length > 30 ? '...' : '');
           const newSession = await createSession(title, language);
-
-          // Mark that we just created this session locally so useEffect doesn't wipe our state
           justCreatedSessionId.current = newSession.objectId;
           currentId = newSession.objectId;
-
-          // Notify parent to update URL/State, this triggers a prop update for sessionId
           onSessionCreated(newSession);
         } finally {
-          // ALWAYS reset the lock, even if creation fails
           creationInProgress.current = false;
         }
       }
 
-      // 2. Save User Message to DB
       if (currentId) {
         await saveMessage(currentId, 'user', content);
       }
 
-      // 3. Call AI via backend (server handles memory/context building)
       const responseText = await invokeAIWithRetry(currentId, content, language);
 
-      // 4. Save AI Message to DB
       if (currentId) {
         await saveMessage(currentId, 'ai', responseText);
       }
 
-      // 5. Update UI with AI response
       setMessages(prev => [...prev, { role: 'ai', content: responseText }]);
 
     } catch (error) {
       console.error("AI/DB Error:", error);
       const errorMsg = t.error + (error.message ? ` (${error.message})` : "");
       setMessages(prev => [...prev, { role: 'ai', content: errorMsg, isError: true }]);
-      // Try to save error message to DB if session exists
       if (sessionId || justCreatedSessionId.current) {
         try {
           await saveMessage(sessionId || justCreatedSessionId.current, 'ai', errorMsg, true);
@@ -152,53 +135,116 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     }
   };
 
+  const promptCards = [
+    {
+      icon: 'grid_view',
+      label: 'UI/UX Layer',
+      title: t.example1 || 'Generate React UI',
+      gradient: 'from-primary-container/5 to-transparent',
+      hoverShadow: 'hover:shadow-[0_0_30px_rgba(0,245,255,0.05)]',
+      hoverBorder: 'hover:border-primary-container/30',
+      iconColor: 'text-primary-container',
+    },
+    {
+      icon: 'database',
+      label: 'Architecture',
+      title: t.example2 || 'Explain SQL',
+      gradient: 'from-secondary/5 to-transparent',
+      hoverShadow: 'hover:shadow-[0_0_30px_rgba(196,171,255,0.05)]',
+      hoverBorder: 'hover:border-secondary/30',
+      iconColor: 'text-secondary',
+    },
+    {
+      icon: 'bug_report',
+      label: 'Logic Debug',
+      title: t.example3 || 'Debug Node.js',
+      gradient: 'from-on-surface-variant/5 to-transparent',
+      hoverShadow: 'hover:shadow-[0_0_30px_rgba(250,250,255,0.05)]',
+      hoverBorder: 'hover:border-on-surface-variant/30',
+      iconColor: 'text-on-surface-variant',
+    },
+  ];
+
+  // Loading state
   if (isInitializing) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--bg-primary)] h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+      <div className="flex-1 flex items-center justify-center bg-surface h-full">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#00f5ff]/30 border-t-[#00f5ff] rounded-full animate-spin"></div>
+          <span className="font-['Space_Grotesk'] text-xs tracking-[0.2em] text-slate-500 uppercase">Loading neural state...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <main className="flex-1 flex flex-col h-full relative w-full overflow-hidden" data-name="chat-interface">
-      {/* Mobile Header - Flex Shrink 0 to prevent crushing */}
-      <div className="md:hidden flex-shrink-0 flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-primary)]">
-        <button onClick={toggleSidebar} className="p-2 -ml-2 text-[var(--text-primary)]">
-          <div className="icon-menu w-6 h-6"></div>
-        </button>
-        <span className="font-semibold">{t.appTitle}</span>
-        <div className="w-8"></div> {/* Spacer */}
-      </div>
+    <main className="flex-1 flex flex-col relative" data-name="chat-interface">
+      {/* Top App Bar */}
+      <header className="h-16 flex justify-between items-center px-6 md:px-12 bg-[#0c1324]/40 backdrop-blur-xl border-b border-outline-variant/20 z-50 shrink-0">
+        <div className="flex items-center gap-6">
+          {/* Mobile menu button */}
+          <button onClick={toggleSidebar} className="md:hidden p-2 -ml-2 text-slate-400 hover:text-[#00f5ff] transition-colors">
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+          <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-base md:text-lg">SENTIENT MONOLITH</h1>
+          <div className="hidden md:flex gap-6">
+            <span className={`font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-default ${
+              !sessionId ? 'text-[#00f5ff] border-b border-[#00f5ff] pb-1' : 'text-slate-400 hover:text-primary transition-colors cursor-pointer'
+            }`}>WORKSPACE</span>
+            <span className={`font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-pointer ${
+              sessionId ? 'text-[#00f5ff] border-b border-[#00f5ff] pb-1' : 'text-slate-400 hover:text-primary transition-colors'
+            }`}>CHAT</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-primary">
+          <div className="hidden md:flex gap-2 mr-4 border-r border-outline-variant/20 pr-4">
+            <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-500">NEURAL</span>
+            <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">/</span>
+            <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">v4.0</span>
+          </div>
+          <button className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200">
+            <span className="material-symbols-outlined">account_tree</span>
+          </button>
+          <button className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200">
+            <span className="material-symbols-outlined">sensors</span>
+          </button>
+        </div>
+      </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-        <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-start">
+      {/* Chat Canvas */}
+      <section className="flex-1 overflow-y-auto px-4 md:px-6">
+        <div className="max-w-4xl mx-auto w-full flex flex-col min-h-full">
 
           {messages.length === 0 && !sessionId ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 mt-10 md:mt-0">
-              <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-4">
-                <div className="icon-wand-sparkles w-8 h-8 text-[var(--accent)]"></div>
-              </div>
-              <div className="space-y-2 max-w-lg">
-                <h2 className="text-2xl font-bold text-[var(--text-primary)]">{t.welcomeTitle}</h2>
-                <p className="text-[var(--text-secondary)]">{t.welcomeSubtitle}</p>
+            /* Welcome / Hero Screen */
+            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 py-12">
+              {/* Hero Header */}
+              <div className="space-y-4">
+                <p className="font-['Space_Grotesk'] text-primary-container text-xs tracking-[0.4em] uppercase opacity-70">Neural Architecture v4.0</p>
+                <h2 className="font-['Manrope'] font-extrabold text-5xl md:text-7xl text-primary leading-tight tracking-tighter text-glow-primary uppercase">
+                  How can I help<br/>you code today?
+                </h2>
               </div>
 
-              <div className="grid gap-3 w-full max-w-lg">
-                {[t.example1, t.example2, t.example3].map((text, i) => (
+              {/* Suggested Prompt Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                {promptCards.map((card, idx) => (
                   <button
-                    key={i}
-                    onClick={() => setInput(text)}
-                    className="p-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors text-left"
+                    key={idx}
+                    onClick={() => setInput(card.title)}
+                    className={`group relative flex flex-col items-start p-6 bg-surface-container-low/40 backdrop-blur-md border border-outline-variant/10 rounded-xl ${card.hoverShadow} ${card.hoverBorder} hover:bg-surface-container-high transition-all duration-500 text-left overflow-hidden`}
                   >
-                    {text}
+                    <span className={`material-symbols-outlined ${card.iconColor} mb-4 opacity-60 group-hover:opacity-100 transition-opacity`}>{card.icon}</span>
+                    <p className="font-['Space_Grotesk'] text-xs tracking-widest text-slate-500 uppercase mb-1">{card.label}</p>
+                    <h3 className="font-['Manrope'] font-bold text-on-surface text-lg">{card.title}</h3>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <>
+            /* Messages */
+            <div className="flex-1 py-6 space-y-1">
               {messages.map((msg, idx) => (
                 <MessageItem
                   key={idx}
@@ -208,52 +254,69 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
                 />
               ))}
               {isLoading && (
-                <div className="flex justify-start mb-6 w-full">
-                  <div className="flex max-w-[80%] gap-4">
-                    <div className="w-8 h-8 rounded-sm bg-green-500 flex-shrink-0 flex items-center justify-center">
-                      <div className="icon-bot text-white w-5 h-5"></div>
+                <div className="flex justify-start mb-6 w-full py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-lg bg-surface-container-high flex-shrink-0 flex items-center justify-center border border-outline-variant/20">
+                      <span className="material-symbols-outlined text-[#00f5ff]" style={{fontSize: '18px'}}>psychology</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[var(--text-secondary)] text-sm">
-                      <div className="w-2 h-2 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-[var(--text-secondary)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-[#00f5ff] rounded-full typing-dot"></div>
+                      <div className="w-2 h-2 bg-[#00f5ff] rounded-full typing-dot"></div>
+                      <div className="w-2 h-2 bg-[#00f5ff] rounded-full typing-dot"></div>
+                      <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-600 uppercase ml-2">Processing...</span>
                     </div>
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} className="h-4" />
-            </>
+            </div>
           )}
+        </div>
+      </section>
+
+      {/* Floating Bottom Input Area */}
+      <div className="shrink-0 px-4 md:px-12 pb-6 pt-2 z-40">
+        <div className="w-full max-w-4xl mx-auto relative group">
+          {/* Glass Background Glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+          <div className="relative bg-surface-container-lowest/80 backdrop-blur-2xl border border-outline-variant/20 rounded-xl shadow-2xl flex items-center p-2 pl-6 gap-4">
+            <span className="material-symbols-outlined text-primary-container/50">bolt</span>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-primary font-body text-sm placeholder:text-slate-600"
+              placeholder={t.typePlaceholder || "Initialize a new codebase or ask for logic..."}
+              type="text"
+            />
+            <div className="flex items-center gap-2 pr-2">
+              <button className="p-2 text-slate-500 hover:text-primary transition-colors">
+                <span className="material-symbols-outlined">attachment</span>
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className={`font-['Space_Grotesk'] font-bold text-[10px] tracking-widest uppercase px-6 py-2.5 rounded-lg shadow-lg transition-all active:scale-95 ${
+                  input.trim() && !isLoading
+                    ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary hover:brightness-110'
+                    : 'bg-surface-container-high text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                GENERATE
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Input Area - Flex Shrink 0 to ensure it sticks to bottom */}
-      <div className="flex-shrink-0 p-4 bg-[var(--bg-primary)] border-t border-[var(--border)]">
-        <div className="max-w-3xl mx-auto relative">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t.typePlaceholder}
-            rows={1}
-            className="w-full resize-none bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] shadow-sm max-h-48 overflow-y-auto"
-            style={{ minHeight: '52px' }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className={`absolute right-2 bottom-3 p-2 rounded-lg transition-colors ${input.trim() && !isLoading
-              ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
-              : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] cursor-not-allowed'
-              }`}
-          >
-            <div className="icon-arrow-up w-5 h-5"></div>
-          </button>
+      {/* Status Metadata Footer */}
+      <div className="hidden md:flex shrink-0 px-8 pb-3 items-center justify-end gap-6 pointer-events-none">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></div>
+          <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.2em] text-slate-400 uppercase">System Core Active</span>
         </div>
-        <div className="text-center mt-2 hidden md:block">
-          <p className="text-xs text-[var(--text-secondary)]">
-            CodeGen AI can make mistakes. Consider checking important information.
-          </p>
+        <div className="flex items-center gap-2">
+          <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.2em] text-slate-600 uppercase">Neural Engine v4.0</span>
         </div>
       </div>
     </main>

@@ -102,7 +102,7 @@ function App() {
     };
 
     return (
-      <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]" data-name="app" data-file="app.js">
+      <div className="flex h-screen overflow-hidden bg-surface relative z-10" data-name="app" data-file="app.js">
         <Sidebar 
             isOpen={sidebarOpen} 
             onClose={() => setSidebarOpen(false)}
@@ -119,7 +119,7 @@ function App() {
         {/* Overlay for mobile sidebar */}
         {sidebarOpen && (
             <div 
-                className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
                 onClick={() => setSidebarOpen(false)}
             ></div>
         )}
