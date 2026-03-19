@@ -1,76 +1,100 @@
 /**
- * AI integration layer using Google Gemini.
- *
- * This module replaces the Trickle platform's `invokeAIAgent()` function.
- * It takes a system prompt + conversation history and returns the AI response.
+ * AI Service integrating OpenRouter
+ * Target Model: deepseek/deepseek-chat
  */
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-let genAI = null;
-let model = null;
+const axios = require('axios');
 
 function initializeAI() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error(
-      'GEMINI_API_KEY is not configured. Get a free key at https://aistudio.google.com/apikey'
-    );
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  console.log(`[DEBUG] OPENROUTER_API_KEY is ${apiKey ? 'defined' : 'undefined or empty'}`);
+  
+  if (!apiKey) {
+    console.warn('⚠️ OPENROUTER_API_KEY is missing! The service will fall back automatically.');
+  } else {
+    console.log('✅ OpenRouter AI initialized securely');
   }
-  genAI = new GoogleGenerativeAI(apiKey);
-  model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  console.log('✅ Gemini AI initialized successfully');
 }
 
 /**
- * Generate an AI response given conversation history.
+ * Generate an AI response via OpenRouter.
  *
- * @param {string} systemPrompt - The system instruction (role, behavior, language)
- * @param {Array} conversationHistory - Array of { role, content } from DB memory
- * @param {string} userMessage - The latest user message
- * @returns {string} The AI's response text
- *
- * Chain-of-Thought:
- * 1. We build the full prompt by combining the system instruction with
- *    the conversation history, giving the AI "memory" of the session.
- * 2. Gemini's generateContent API is stateless, so we must pass the
- *    full context each time.
- * 3. We map our DB roles ('user'/'ai') to readable labels.
+ * @param {string} systemPrompt
+ * @param {Array} conversationHistory 
+ * @param {string} userMessage 
+ * @returns {string} The AI text response
  */
 async function generateResponse(systemPrompt, conversationHistory, userMessage) {
-  if (!model) {
-    initializeAI();
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENROUTER_API_KEY is not configured in .env');
   }
 
-  // Build the conversation context from memory
-  const historyText = conversationHistory
-    .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-    .join('\n\n');
+  // 1. Format messages into standard layout
+  const messages = [{ role: 'system', content: systemPrompt }];
 
-  const fullPrompt = `${systemPrompt}
-
-Here is the conversation history:
-${historyText}
-
-User: ${userMessage}
-
-Please respond to the user's latest message.`;
+  for (const msg of conversationHistory) {
+    messages.push({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    });
+  }
+  messages.push({ role: 'user', content: userMessage });
 
   try {
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    return response.text();
+    console.log(`[AI SERVICE] Calling OpenRouter model 'deepseek/deepseek-chat'...`);
+
+    // 2. Network Request via Axios
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'deepseek/deepseek-chat',
+        messages: messages,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:3000',
+          'X-Title': 'CodeGenerator',
+        },
+        timeout: 20000 // 20s timeout limit
+      }
+    );
+
+    const data = response.data;
+    
+    // 3. Prevent empty responses
+    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
+      throw new Error('OpenRouter returned an empty or invalid response.');
+    }
+
+    console.log('[AI SERVICE] AI Response received successfully!');
+    
+    // 4. Return clean plain-text output
+    return data.choices[0].message.content;
+
   } catch (error) {
-    console.error('Gemini API error:', error.message);
-
-    if (error.message && error.message.includes('API_KEY_INVALID')) {
-      throw new Error('Invalid API key. Please check your GEMINI_API_KEY in .env');
+    // 5. Handle Errors Safely
+    if (error.response) {
+      const status = error.response.status;
+      const errorMsg = error.response.data?.error?.message || error.message;
+      console.error(`[AI SERVICE ERROR] OpenRouter API Status ${status}: ${errorMsg}`);
+      
+      if (status === 401) {
+        console.error('-> Make sure your OPENROUTER_API_KEY is valid!');
+      } else if (status === 429) {
+        console.error('-> OpenRouter Rate limit exceeded or out of credits.');
+      }
+    } else if (error.request) {
+      console.error(`[AI SERVICE ERROR] No response from OpenRouter: ${error.message}`);
+    } else {
+      console.error(`[AI SERVICE ERROR] Failure to issue request: ${error.message}`);
     }
-    if (error.message && error.message.includes('RATE_LIMIT')) {
-      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    }
 
-    throw new Error(`AI generation failed: ${error.message}`);
+    // 6. Bonus Fallback logic
+    console.warn('[AI SERVICE] Returning fallback message instead of crashing!');
+    return `[Fallback Mode Activated] Sorry, the DeepSeek AI backend is temporarily unable to answer. (Error: ${error.message})`;
   }
 }
 

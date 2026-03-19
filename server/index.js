@@ -8,10 +8,10 @@
  *   trickleUpdateObject() → PUT  /api/sessions/:id
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const db = require('./db');
 const { initializeAI, generateResponse } = require('./ai');
@@ -175,6 +175,26 @@ app.post('/api/chat', async (req, res) => {
   } catch (error) {
     console.error('POST /api/chat error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ══════════════════════════════════════════════
+// SIMPLE /GENERATE ROUTE (OpenRouter Bonus)
+// ══════════════════════════════════════════════
+app.post('/api/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Call the generic AI service with no system prompt and no history
+    const aiText = await generateResponse("You are a helpful assistant.", [], prompt);
+    
+    res.json({ response: aiText });
+  } catch (error) {
+    console.error('API /generate error:', error.message);
+    res.status(500).json({ error: 'An error occurred generating response.' });
   }
 });
 
