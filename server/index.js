@@ -167,7 +167,7 @@ app.get('/api/sessions/:id/messages', (req, res) => {
 app.post('/api/messages', (req, res) => {
   try {
     const { sessionId, role, content, isError, attachments } = req.body;
-    
+
     let dbContent = content;
     // For simplicity, store the attachments JSON dynamically inside the content or append it
     // Using a separator for backward compatibility with existing db structure
@@ -222,7 +222,7 @@ app.post('/api/chat', async (req, res) => {
           if (m.content.startsWith('{') && m.content.includes('"text":')) {
             msgContent = JSON.parse(m.content).text;
           }
-        } catch(e) {}
+        } catch (e) { }
         return {
           role: m.role,
           content: msgContent
@@ -241,7 +241,7 @@ app.post('/api/chat', async (req, res) => {
           const filename = `${Date.now()}-${att.name}`;
           const filepath = path.join(__dirname, 'uploads', filename);
           fs.writeFileSync(filepath, base64Data, 'base64');
-          
+
           processedAttachments.push({
             name: att.name,
             mimeType: att.mimeType || 'image/jpeg',
@@ -274,7 +274,7 @@ app.post('/api/generate', async (req, res) => {
 
     // Call the generic AI service with no system prompt and no history
     const aiText = await generateResponse("You are a helpful assistant.", [], prompt);
-    
+
     res.json({ response: aiText });
   } catch (error) {
     console.error('API /generate error:', error.message);
@@ -304,9 +304,9 @@ app.get('/api/sessions/:id/metadata', (req, res) => {
 const multer = require('multer');
 const { OpenAI, toFile } = require('openai');
 
-const upload = multer({ 
-  storage: multer.memoryStorage(), 
-  limits: { fileSize: 25 * 1024 * 1024 } 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }
 });
 
 const nvidiaOpenAI = new OpenAI({
@@ -317,12 +317,12 @@ const nvidiaOpenAI = new OpenAI({
 app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
   try {
     if (!req.file) {
-       console.error('[SPEECH API Error] No audio payload intercepted by Multer.');
-       return res.status(400).json({ error: 'No audio file uploaded.' });
+      console.error('[SPEECH API Error] No audio payload intercepted by Multer.');
+      return res.status(400).json({ error: 'No audio file uploaded.' });
     }
 
-    console.log(`[SPEECH API] Request received: ${req.file.originalname}, Size: ${(req.file.size/1024).toFixed(2)} KB, Mime: ${req.file.mimetype}`);
-    
+    console.log(`[SPEECH API] Request received: ${req.file.originalname}, Size: ${(req.file.size / 1024).toFixed(2)} KB, Mime: ${req.file.mimetype}`);
+
     // Convert multer memory buffer seamlessly using OpenAI's toFile utility
     const audioFile = await toFile(req.file.buffer, 'recording.webm', { type: 'audio/webm' });
 
