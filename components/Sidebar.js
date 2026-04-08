@@ -1,7 +1,9 @@
-function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSelectChat, language, setLanguage, currentLanguage, isLoading }) {
+function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSelectChat, onDeleteChat, language, setLanguage, currentLanguage, isLoading, theme, setTheme, currentUser, onLogout }) {
   const t = TRANSLATIONS[currentLanguage];
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
-  const languages = ['en', 'ta', 'ru', 'ja'];
+  const languages = ['en', 'hi', 'ta', 'te', 'ml', 'or', 'ru', 'ja'];
 
   const cycleLanguage = () => {
     const currentIndex = languages.indexOf(currentLanguage);
@@ -10,10 +12,9 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
   };
 
   const navItems = [
-    { icon: 'terminal', label: 'Terminal', active: true },
-    { icon: 'psychology', label: 'Neural', active: false },
-    { icon: 'history', label: 'History', active: false },
-    { icon: 'settings', label: 'Settings', active: false },
+    { icon: 'terminal', label: 'Terminal', active: !isHistoryOpen && !isSettingsOpen },
+    { icon: 'history', label: 'History', active: isHistoryOpen },
+    { icon: 'settings', label: 'Settings', active: isSettingsOpen },
   ];
 
   return (
@@ -21,13 +22,16 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
       {/* Icon Rail Sidebar (Desktop) */}
       <aside
         className={`
-          hidden md:flex w-20 h-screen border-r border-outline-variant/20 bg-[#0c1324] flex-col items-center py-8 gap-8 shadow-[0_0_40px_rgba(0,220,229,0.1)] shrink-0 relative z-30
+          hidden md:flex w-20 h-screen border-r border-outline-variant/20 bg-[#0c1324] flex-col items-center py-8 gap-8 shadow-[0_0_40px_rgba(0,220,229,0.1)] shrink-0 relative z-40
         `}
         data-name="sidebar-rail"
       >
         {/* Logo */}
-        <div className="text-[#00f5ff] font-bold tracking-tighter text-xl mb-4">
-          <span className="material-symbols-outlined" style={{fontSize: '28px'}}>terminal</span>
+        <div 
+          className="text-[#00f5ff] font-bold tracking-tighter text-xl mb-4 cursor-pointer hover:text-primary transition-colors"
+          onClick={() => { setIsHistoryOpen(false); setIsSettingsOpen(false); onNewChat(); }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>terminal</span>
         </div>
 
         {/* Nav Items */}
@@ -35,12 +39,16 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
           {navItems.map((item, idx) => (
             <button
               key={idx}
-              className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-lg transition-all duration-300 scale-95 active:scale-90 ${
-                item.active
+              className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-lg transition-all duration-300 scale-95 active:scale-90 ${item.active
                   ? 'text-[#00f5ff] bg-[#23293c] shadow-[inset_0_0_10px_rgba(0,245,255,0.2)]'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-[#23293c]'
-              }`}
-              onClick={item.label === 'History' ? () => {/* Could toggle history panel */} : undefined}
+                }`}
+              onClick={
+                item.label === 'History' ? () => { setIsHistoryOpen(!isHistoryOpen); setIsSettingsOpen(false); } : 
+                item.label === 'Settings' ? () => { setIsSettingsOpen(!isSettingsOpen); setIsHistoryOpen(false); } : 
+                item.label === 'Terminal' ? () => { setIsHistoryOpen(false); setIsSettingsOpen(false); onNewChat(); } : 
+                undefined
+              }
             >
               <span className="material-symbols-outlined">{item.icon}</span>
               <span className="font-['Space_Grotesk'] text-[10px] tracking-widest uppercase">{item.label}</span>
@@ -48,8 +56,8 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
           ))}
         </nav>
 
-        {/* Profile at bottom */}
-        <div className="mt-auto">
+        {/* Bottom Actions */}
+        <div className="mt-auto flex flex-col items-center gap-4">
           <div
             className="w-10 h-10 rounded-full border border-outline-variant/30 flex items-center justify-center bg-surface-container overflow-hidden cursor-pointer hover:border-[#00f5ff]/50 transition-colors"
             onClick={cycleLanguage}
@@ -57,10 +65,124 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
           >
             <span className="font-['Space_Grotesk'] text-xs font-bold text-[#00f5ff] uppercase">{currentLanguage}</span>
           </div>
+
+          <div
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#00dce5] to-[#571bc1] flex items-center justify-center cursor-pointer shadow-lg hover:shadow-[0_0_15px_rgba(0,245,255,0.4)] transition-all"
+            onClick={onLogout}
+            title={`Logged in as ${currentUser?.email}\nClick to Logout`}
+          >
+            <span className="font-['Space_Grotesk'] text-xs font-bold text-white uppercase">
+              {currentUser?.email ? currentUser.email.charAt(0) : 'U'}
+            </span>
+          </div>
         </div>
       </aside>
 
       {/* Slide-out History Panel (Desktop - triggered by clicking History icon) */}
+      <aside
+        className={`
+          hidden md:flex fixed inset-y-0 left-20 z-30 w-72 bg-[#0c1324]/95 backdrop-blur-2xl border-r border-outline-variant/20 flex-col transform transition-transform duration-300 ease-in-out
+          ${isHistoryOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="p-5 flex items-center justify-between border-b border-outline-variant/20">
+          <h2 className="font-['Manrope'] font-black tracking-widest text-slate-300 text-sm uppercase">Session History</h2>
+          <button onClick={() => setIsHistoryOpen(false)} className="text-slate-500 hover:text-primary transition-colors">
+            <span className="material-symbols-outlined shrink-0" style={{ fontSize: '18px' }}>close</span>
+          </button>
+        </div>
+        
+        <div className="px-4 py-4">
+          <button
+            onClick={() => { onNewChat(); setIsHistoryOpen(false); }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#00f5ff]/10 border border-[#00f5ff]/30 rounded-lg hover:bg-[#00f5ff]/20 transition-all text-sm font-bold text-[#00f5ff]"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+            <span className="font-['Space_Grotesk'] tracking-widest text-[10px] uppercase">New Session</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-5 h-5 border-2 border-[#00f5ff]/30 border-t-[#00f5ff] rounded-full animate-spin"></div>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-8 text-slate-600 font-['Space_Grotesk'] text-xs tracking-widest uppercase">
+              No history yet
+            </div>
+          ) : (
+            sessions.map(session => (
+              <div key={session.objectId} className="relative group/item flex items-center">
+                <button
+                  onClick={() => { onSelectChat(session.objectId); setIsHistoryOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm rounded-lg truncate transition-all duration-200 flex items-center gap-3 border border-transparent ${currentSessionId === session.objectId
+                      ? 'bg-[#23293c] text-[#00f5ff] shadow-[inset_0_0_10px_rgba(0,245,255,0.1)] border-outline-variant/30'
+                      : 'text-slate-400 hover:bg-surface-container-high hover:text-primary hover:border-outline-variant/20'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-[#00f5ff]/50" style={{ fontSize: '16px' }}>
+                    {currentSessionId === session.objectId ? 'psychology' : 'history_toggle_off'}
+                  </span>
+                  <span className="truncate font-['Inter'] text-xs font-medium pr-6">{session.objectData.title || 'New Chat'}</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDeleteChat(session.objectId); }}
+                  className="absolute right-2 p-1.5 rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  title="Delete conversation"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
+
+      {/* Slide-out Settings Panel (Desktop) */}
+      <aside
+        className={`
+          hidden md:flex fixed inset-y-0 left-20 z-20 w-72 bg-[#0c1324]/95 backdrop-blur-2xl border-r border-outline-variant/20 flex-col transform transition-transform duration-300 ease-in-out
+          ${isSettingsOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="p-5 flex items-center justify-between border-b border-outline-variant/20">
+          <h2 className="font-['Manrope'] font-black tracking-widest text-slate-300 text-sm uppercase">Settings</h2>
+          <button onClick={() => setIsSettingsOpen(false)} className="text-slate-500 hover:text-primary transition-colors">
+            <span className="material-symbols-outlined shrink-0" style={{ fontSize: '18px' }}>close</span>
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          {/* Theme Toggle */}
+          <div>
+            <h3 className="text-xs font-['Space_Grotesk'] tracking-widest text-[#00f5ff] uppercase mb-4 opacity-80">Appearance</h3>
+            <div className="bg-surface-container-high rounded-xl border border-outline-variant/20 overflow-hidden text-sm">
+               <button 
+                  onClick={() => setTheme('dark')}
+                  className={`w-full flex items-center justify-between p-4 transition-colors ${theme === 'dark' ? 'bg-[#00f5ff]/10 text-primary' : 'text-slate-400 hover:text-slate-300'}`}
+               >
+                 <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined" style={{fontSize: '20px'}}>dark_mode</span>
+                    <span className="font-['Inter']">Dark Mode</span>
+                 </div>
+                 {theme === 'dark' && <span className="material-symbols-outlined text-[#00f5ff]" style={{fontSize: '18px'}}>check</span>}
+               </button>
+               <div className="h-px bg-outline-variant/20 w-full" />
+               <button 
+                  onClick={() => setTheme('light')}
+                  className={`w-full flex items-center justify-between p-4 transition-colors ${theme === 'light' ? 'bg-[#00f5ff]/10 text-primary' : 'text-slate-400 hover:text-slate-300'}`}
+               >
+                 <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined" style={{fontSize: '20px'}}>light_mode</span>
+                    <span className="font-['Inter']">Light Mode</span>
+                 </div>
+                 {theme === 'light' && <span className="material-symbols-outlined text-[#00f5ff]" style={{fontSize: '18px'}}>check</span>}
+               </button>
+            </div>
+          </div>
+        </div>
+      </aside>
 
       {/* Mobile Sidebar Overlay */}
       <aside
@@ -101,7 +223,7 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center py-8">
-              <span className="material-symbols-outlined text-slate-600 mb-2" style={{fontSize: '32px'}}>chat_bubble_outline</span>
+              <span className="material-symbols-outlined text-slate-600 mb-2" style={{ fontSize: '32px' }}>chat_bubble_outline</span>
               <p className="font-['Space_Grotesk'] text-xs text-slate-600 tracking-widest uppercase">No history yet</p>
             </div>
           ) : (
@@ -110,31 +232,48 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
                 Recent Sessions
               </div>
               {sessions.map(session => (
-                <button
-                  key={session.objectId}
-                  onClick={() => onSelectChat(session.objectId)}
-                  className={`w-full text-left px-4 py-2.5 text-sm rounded-lg truncate transition-all duration-200 flex items-center gap-3 group ${
-                    currentSessionId === session.objectId
-                      ? 'bg-[#23293c] text-[#00f5ff] shadow-[inset_0_0_10px_rgba(0,245,255,0.1)]'
-                      : 'text-slate-400 hover:bg-surface-container-high hover:text-primary'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm" style={{fontSize: '16px'}}>
-                    {currentSessionId === session.objectId ? 'chat' : 'chat_bubble_outline'}
-                  </span>
-                  <span className="truncate font-['Inter'] text-xs">{session.objectData.title || 'New Chat'}</span>
-                </button>
+                <div key={session.objectId} className="relative group/item flex items-center">
+                  <button
+                    onClick={() => onSelectChat(session.objectId)}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-lg truncate transition-all duration-200 flex items-center gap-3 ${currentSessionId === session.objectId
+                        ? 'bg-[#23293c] text-[#00f5ff] shadow-[inset_0_0_10px_rgba(0,245,255,0.1)]'
+                        : 'text-slate-400 hover:bg-surface-container-high hover:text-primary'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontSize: '16px' }}>
+                      {currentSessionId === session.objectId ? 'chat' : 'chat_bubble_outline'}
+                    </span>
+                    <span className="truncate font-['Inter'] text-xs pr-6">{session.objectData.title || 'New Chat'}</span>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDeleteChat(session.objectId); }}
+                    className="absolute right-2 p-1.5 rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                    title="Delete conversation"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                  </button>
+                </div>
               ))}
             </>
           )}
         </div>
 
-        {/* Footer Controls */}
         <div className="p-4 border-t border-outline-variant/20 space-y-2">
+          {/* Theme Toggle (Mobile) */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-container-high group cursor-pointer transition-colors" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+              <span className="font-['Space_Grotesk'] text-xs">Theme</span>
+            </div>
+            <div className="text-[#00f5ff] text-[10px] font-['Space_Grotesk'] tracking-widest border border-outline-variant/30 px-2 py-0.5 rounded uppercase">
+              {theme}
+            </div>
+          </div>
+
           {/* Language Selector */}
           <div className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-container-high group cursor-pointer transition-colors" onClick={cycleLanguage}>
             <div className="flex items-center gap-2 text-sm text-primary">
-              <span className="material-symbols-outlined" style={{fontSize: '18px'}}>translate</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>translate</span>
               <span className="font-['Space_Grotesk'] text-xs">{t.langName}</span>
             </div>
             <div className="text-[#00f5ff] text-[10px] font-['Space_Grotesk'] tracking-widest border border-outline-variant/30 px-2 py-0.5 rounded uppercase">

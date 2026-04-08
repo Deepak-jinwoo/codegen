@@ -13,10 +13,14 @@ const DB_TABLES = {
 // Create a new chat session
 async function createSession(title, language) {
     try {
+        const userStr = localStorage.getItem('currentUser');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const userId = user ? user.id : null;
+
         const response = await fetch(`${API_BASE}/api/sessions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: title || 'New Chat', language: language || 'en' })
+            body: JSON.stringify({ title: title || 'New Chat', language: language || 'en', userId })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const session = await response.json();
@@ -30,7 +34,11 @@ async function createSession(title, language) {
 // Get all chat sessions (ordered by latest first)
 async function getSessions() {
     try {
-        const response = await fetch(`${API_BASE}/api/sessions`);
+        const userStr = localStorage.getItem('currentUser');
+        const user = userStr ? JSON.parse(userStr) : null;
+        let query = user ? `?userId=${user.id}` : '';
+
+        const response = await fetch(`${API_BASE}/api/sessions${query}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
         return result.items || [];
@@ -82,4 +90,42 @@ async function updateSessionTitle(sessionId, title) {
     } catch (error) {
         console.error('Error updating session title:', error);
     }
+}
+
+// Delete a session and all its messages
+async function deleteSession(sessionId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return true;
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        throw error;
+    }
+}
+
+// ── Auth Functions ──
+
+async function registerUser(email, password) {
+    const response = await fetch(`${API_BASE}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to register');
+    return data;
+}
+
+async function loginUser(email, password) {
+    const response = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to login');
+    return data;
 }

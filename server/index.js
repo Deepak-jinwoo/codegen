@@ -21,18 +21,55 @@ const PORT = process.env.PORT || 3000;
 
 // ── Middleware ──
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve the frontend files from the parent directory
 app.use(express.static(path.join(__dirname, '..')));
+// Serve user uploaded attachments
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── System Prompts (moved from frontend for security) ──
 const SYSTEM_PROMPTS = {
   en: "You are a helpful, witty, and highly skilled AI coding assistant. You behave similarly to ChatGPT, offering clear, conversational, and precise answers. You are expert in all programming languages. Always format code blocks with markdown (e.g., ```python). Provide explanations before or after code.",
   ta: "நீங்கள் ஒரு புத்திசாலித்தனமான மற்றும் திறமையான AI குறியீட்டு உதவியாளர். நீங்கள் ChatGPT போலவே செயல்பட வேண்டும். தெளிவான மற்றும் துல்லியமான பதில்களை தமிழில் அளிக்கவும். குறியீட்டுத் தொகுதிகள் (code blocks) ஆங்கிலத்தில் இருக்க வேண்டும். குறியீட்டிற்கு முன் அல்லது பின் விளக்கங்களை அளிக்கவும்.",
   ru: "Вы — полезный, остроумный и высококвалифицированный ИИ-помощник по программированию. Вы ведете себя так же, как ChatGPT, предлагая четкие, разговорные и точные ответы. Вы эксперт во всех языках программирования. Всегда форматируйте блоки кода с помощью markdown. Дайте объяснения до или после кода.",
-  ja: "あなたは役に立ち、機知に富み、高度なスキルを持つAIコーディングアシスタントです。ChatGPTと同じように振る舞い、明確で会話的で正確な回答を提供してください。あなたはすべてのプログラミング言語のエキスパートです。コードブロックは常にマークダウンでフォーマットしてください。コードの前後に説明を加えてください。"
+  ja: "あなたは役に立ち、機知に富み、高度なスキルを持つAIコーディングアシスタントです。ChatGPTと同じように振る舞い、明確で会話的で正確な回答を提供してください。あなたはすべてのプログラミング言語のエキスパートです。コードブロックは常にマークダウンでフォーマットしてください。コードの前後に説明を加えてください。",
+  hi: "आप एक सहायक, मजाकिया और अत्यधिक कुशल AI कोडिंग सहायक हैं। आप ChatGPT के समान व्यवहार करते हैं, स्पष्ट, संवादात्मक और सटीक उत्तर देते हैं। आप सभी प्रोग्रामिंग भाषाओं के विशेषज्ञ हैं। कोड ब्लॉक को हमेशा मार्कडाउन के साथ प्रारूपित करें। कोड से पहले या बाद में स्पष्टीकरण दें।",
+  te: "మీరు సహాయక, తెలివైన మరియు అత్యంత నైపుణ్యం కలిగిన AI కోడింగ్ అసిస్టెంట్. మీరు ChatGPT వలె ప్రవర్తిస్తారు, స్పష్టమైన మరియు ఖచ్చితమైన సమాధానాలను అందిస్తారు. మీరు అన్ని ప్రోగ్రామింగ్ భాషలలో నిపుణులు. కోడ్ బ్లాక్‌లను ఎల్లప్పుడూ మార్క్‌డౌన్‌తో ఫార్మాట్ చేయండి. కోడ్‌కు ముందు లేదా తర్వాత వివరణలు ఇవ్వండి.",
+  ml: "നിങ്ങൾ ഒരു സഹായകനും സർഗ്ഗാത്മകവും വളരെ വൈദഗ്ധ്യമുള്ളതുമായ AI കോഡിംഗ് സഹായിയാണ്. വ്യക്തവും സംഭാഷണപരവും കൃത്യവുമായ ഉത്തരങ്ങൾ നൽകിക്കൊണ്ട് നിങ്ങൾ ChatGPT-ക്ക് സമാനമായി പ്രവർത്തിക്കുന്നു. നിങ്ങൾ എല്ലാ പ്രോഗ്രാമിംഗ് ഭാഷകളിലും വിദഗ്ദ്ധനാണ്. കോഡ് ബ്ലോക്കുകൾ എപ്പോഴും മാർക്ക്ഡൗൺ ഉപയോഗിച്ച് ഫോർമാറ്റ് ചെയ്യുക. കോഡിന് മുമ്പോ ശേഷമോ വിശദീകരണങ്ങൾ നൽകുക.",
+  or: "ଆପଣ ଜଣେ ସାହାଯ୍ୟକାରୀ, ଚତୁର ଏବଂ ଅତ୍ୟନ୍ତ ଦକ୍ଷ AI କୋଡିଂ ସହାୟକ। ଆପଣ ସ୍ପଷ୍ଟ ଏବଂ ସଠିକ୍ ଉତ୍ତର ପ୍ରଦାନ କରି ChatGPT ପରି ବ୍ୟବହାର କରନ୍ତି। ଆପଣ ସମସ୍ତ ପ୍ରୋଗ୍ରାମିଂ ଭାଷାରେ ବିଶେଷଜ୍ଞ। କୋଡ୍ ବ୍ଲକ୍ ଗୁଡ଼ିକୁ ସର୍ବଦା ମାର୍କଡାଉନ୍ ସହିତ ଫର୍ମାଟ୍ କରନ୍ତୁ। କୋଡ୍ ପୂର୍ବରୁ କିମ୍ବା ପରେ ବୁଝାନ୍ତୁ।"
 };
+
+// ══════════════════════════════════════════════
+// AUTHENTICATION ENDPOINTS
+// ══════════════════════════════════════════════
+
+// POST /api/register
+app.post('/api/register', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const user = db.registerUser(email, password);
+    res.json({ success: true, user });
+  } catch (error) {
+    if (error.message.includes('Email already exists')) return res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/login
+app.post('/api/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const user = db.loginUser(email, password);
+    res.json({ success: true, user });
+  } catch (error) {
+    if (error.message.includes('Invalid email or password')) return res.status(401).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // ══════════════════════════════════════════════
 // SESSION ENDPOINTS
@@ -42,7 +79,8 @@ const SYSTEM_PROMPTS = {
 app.get('/api/sessions', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const sessions = db.getSessions(limit);
+    const userId = req.query.userId || null;
+    const sessions = db.getSessions(userId, limit);
     const items = sessions.map(s => ({
       objectId: s.id,
       objectData: {
@@ -61,8 +99,8 @@ app.get('/api/sessions', (req, res) => {
 // POST /api/sessions — Create a new session
 app.post('/api/sessions', (req, res) => {
   try {
-    const { title, language } = req.body;
-    const session = db.createSession(title, language);
+    const { title, language, userId } = req.body;
+    const session = db.createSession(title, language, userId);
     res.json({
       objectId: session.id,
       objectData: {
@@ -85,6 +123,17 @@ app.put('/api/sessions/:id', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('PUT /api/sessions/:id error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/sessions/:id — Delete a session and all its messages
+app.delete('/api/sessions/:id', (req, res) => {
+  try {
+    db.deleteSession(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('DELETE /api/sessions/:id error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -114,11 +163,19 @@ app.get('/api/sessions/:id/messages', (req, res) => {
   }
 });
 
-// POST /api/messages — Save a message
+// POST /api/messages — Save a message to the database
 app.post('/api/messages', (req, res) => {
   try {
-    const { sessionId, role, content, isError } = req.body;
-    const message = db.createMessage(sessionId, role, content, isError);
+    const { sessionId, role, content, isError, attachments } = req.body;
+    
+    let dbContent = content;
+    // For simplicity, store the attachments JSON dynamically inside the content or append it
+    // Using a separator for backward compatibility with existing db structure
+    if (attachments && attachments.length > 0) {
+      dbContent = JSON.stringify({ text: content, attachedFiles: attachments });
+    }
+
+    const message = db.createMessage(sessionId, role, dbContent, isError);
     res.json({
       objectId: message.id,
       objectData: {
@@ -146,32 +203,59 @@ app.post('/api/messages', (req, res) => {
  * 2. Formatting them as conversation history in the prompt
  * 3. Sending the full context to Gemini
  */
+// POST /api/chat — Invoke the AI Chat
 app.post('/api/chat', async (req, res) => {
-  try {
-    const { sessionId, message, language } = req.body;
+  const { sessionId, message, language, attachments } = req.body;
 
-    if (!message || !message.trim()) {
-      return res.status(400).json({ error: 'Message is required' });
+  try {
+    const promptLang = language || 'en';
+    const systemPrompt = SYSTEM_PROMPTS[promptLang] || SYSTEM_PROMPTS['en'];
+
+    // 1. Get Conversation Memory
+    let history = [];
+    if (sessionId) {
+      const msgs = db.getConversationMemory(sessionId, 10);
+      history = msgs.map(m => {
+        let msgContent = m.content;
+        try {
+          // Check if it's the new JSON format
+          if (m.content.startsWith('{') && m.content.includes('"text":')) {
+            msgContent = JSON.parse(m.content).text;
+          }
+        } catch(e) {}
+        return {
+          role: m.role,
+          content: msgContent
+        };
+      });
     }
 
-    // Get conversation memory from database
-    const memoryMessages = sessionId
-      ? db.getConversationMemory(sessionId, 20)
-      : [];
+    // Process uploaded base64 files and save to disk to prevent RAM overflow
+    const fs = require('fs');
+    let processedAttachments = [];
+    if (attachments && attachments.length > 0) {
+      for (const att of attachments) {
+        if (att.data) {
+          // Replace base64 header
+          const base64Data = att.data.replace(/^data:([A-Za-z-+/]+);base64,/, '');
+          const filename = `${Date.now()}-${att.name}`;
+          const filepath = path.join(__dirname, 'uploads', filename);
+          fs.writeFileSync(filepath, base64Data, 'base64');
+          
+          processedAttachments.push({
+            name: att.name,
+            mimeType: att.mimeType || 'image/jpeg',
+            url: `/uploads/${filename}`,
+            base64Data: base64Data // FIX: Do not use att.data, use stripped base64
+          });
+        }
+      }
+    }
 
-    console.log(`💬 Chat request | Session: ${sessionId || 'new'} | Memory: ${memoryMessages.length} messages`);
+    // 2. Generate AI Response
+    const aiResponseText = await generateResponse(systemPrompt, history, message, processedAttachments);
 
-    // Select system prompt based on language
-    const systemPrompt = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.en;
-
-    // Call AI with conversation memory as context
-    const responseText = await generateResponse(
-      systemPrompt,
-      memoryMessages,
-      message
-    );
-
-    res.json({ response: responseText });
+    res.json({ response: aiResponseText, processedAttachments });
   } catch (error) {
     console.error('POST /api/chat error:', error);
     res.status(500).json({ error: error.message });
@@ -198,12 +282,84 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════
+// SESSION METADATA ENDPOINT
+// ══════════════════════════════════════════════
+
+// GET /api/sessions/:id/metadata — Get session stats
+app.get('/api/sessions/:id/metadata', (req, res) => {
+  try {
+    const meta = db.getSessionMetadata(req.params.id);
+    if (!meta) return res.status(404).json({ error: 'Session not found' });
+    res.json(meta);
+  } catch (error) {
+    console.error('GET /api/sessions/:id/metadata error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ══════════════════════════════════════════════
+// SPEECH TO TEXT ENDPOINT (NVIDIA PARAKEET)
+// ══════════════════════════════════════════════
+const multer = require('multer');
+const { OpenAI, toFile } = require('openai');
+
+const upload = multer({ 
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 25 * 1024 * 1024 } 
+});
+
+const nvidiaOpenAI = new OpenAI({
+  apiKey: "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",
+  baseURL: "https://integrate.api.nvidia.com/v1"
+});
+
+app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+       console.error('[SPEECH API Error] No audio payload intercepted by Multer.');
+       return res.status(400).json({ error: 'No audio file uploaded.' });
+    }
+
+    console.log(`[SPEECH API] Request received: ${req.file.originalname}, Size: ${(req.file.size/1024).toFixed(2)} KB, Mime: ${req.file.mimetype}`);
+    
+    // Convert multer memory buffer seamlessly using OpenAI's toFile utility
+    const audioFile = await toFile(req.file.buffer, 'recording.webm', { type: 'audio/webm' });
+
+    // Use the official OpenAI SDK structure which maps perfectly to NVIDIA NIM architecture
+    const transcription = await nvidiaOpenAI.audio.transcriptions.create({
+      file: audioFile,
+      model: 'nvidia/parakeet-ctc-1.1b-asr',
+      temperature: 0,
+      language: 'en'
+    });
+
+    console.log('[SPEECH API] Transcribed successfully: ', transcription.text);
+    res.json({ text: transcription.text });
+  } catch (error) {
+    console.error('API /transcribe error:', error);
+    // Explicitly return OpenAI-styled SDK errors if available
+    const errorMsg = error.status ? `NVIDIA API HTTP ${error.status} - ${error.error?.message}` : error.message;
+    res.status(500).json({ error: `Speech-to-text failed: ${errorMsg}` });
+  }
+});
+
 // ── Health Check ──
 app.get('/api/health', (req, res) => {
+  const fs = require('fs');
+  const dbPath = path.join(__dirname, 'memory.db');
+  let dbSize = 'unknown';
+  try {
+    const stats = fs.statSync(dbPath);
+    dbSize = `${(stats.size / 1024).toFixed(1)} KB`;
+  } catch (e) { /* file might not exist yet */ }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    database: 'connected'
+    database: 'connected',
+    dbFileSize: dbSize,
+    memoryWindow: '10 messages'
   });
 });
 

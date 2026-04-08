@@ -1,10 +1,24 @@
 function MessageItem({ message, isLast, language }) {
-  const { role, content, isError } = message;
+  const { role, content, isError, attachedFiles: initialAttached } = message;
   const isUser = role === 'user';
   const t = TRANSLATIONS[language];
   
+  // Extract content and attachments if stringified JSON
+  let actualContent = content;
+  let attachedFiles = initialAttached || [];
+
+  try {
+    if (typeof content === 'string' && content.startsWith('{') && content.includes('"text"')) {
+      const parsed = JSON.parse(content);
+      if (parsed.text !== undefined) actualContent = parsed.text;
+      if (parsed.attachedFiles) attachedFiles = parsed.attachedFiles;
+    }
+  } catch (e) {
+    // Ignore, it's plain text
+  }
+
   // Parse content into text and code blocks
-  const parsedContent = React.useMemo(() => parseMessageContent(content), [content]);
+  const parsedContent = React.useMemo(() => parseMessageContent(actualContent), [actualContent]);
 
   const [copiedIndex, setCopiedIndex] = React.useState(null);
 
@@ -44,8 +58,24 @@ function MessageItem({ message, isLast, language }) {
                 ? 'bg-error-container/20 text-error border border-error/20 rounded-tl-sm px-5 py-3.5'
                 : 'bg-transparent text-primary p-0 shadow-none'
           }`}>
+            {attachedFiles && attachedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {attachedFiles.map((att, idx) => (
+                  <div key={idx} className="relative rounded-lg overflow-hidden border border-outline-variant/30 max-w-[150px]">
+                    {att.mimeType?.startsWith('image/') ? (
+                      <img src={att.url || att.data} alt="attachment" className="w-full h-auto object-cover" />
+                    ) : (
+                      <div className="w-full h-24 bg-surface-container-high flex flex-col items-center justify-center p-2">
+                        <span className="material-symbols-outlined text-sm text-slate-400">description</span>
+                        <span className="text-[10px] font-['Space_Grotesk'] text-slate-500 truncate w-full text-center mt-1">{att.name}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             {isUser ? (
-              <p className="whitespace-pre-wrap break-words font-['Inter'] text-sm leading-relaxed">{content}</p>
+              <p className="whitespace-pre-wrap break-words font-['Inter'] text-sm leading-relaxed">{actualContent}</p>
             ) : (
               <div className="space-y-4 w-full min-w-0">
                 {parsedContent.map((block, idx) => {

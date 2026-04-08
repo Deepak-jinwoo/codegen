@@ -42,13 +42,33 @@ function App() {
     const [sessions, setSessions] = React.useState([]);
     const [currentSessionId, setCurrentSessionId] = React.useState(null);
     const [isLoadingSessions, setIsLoadingSessions] = React.useState(true);
+    const [theme, setTheme] = React.useState(() => localStorage.getItem('theme') || 'dark');
+    const [currentUser, setCurrentUser] = React.useState(() => {
+        const saved = localStorage.getItem('currentUser');
+        return saved ? JSON.parse(saved) : null;
+    });
+
+    // Handle theme class on root element
+    React.useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
 
     // Initial load of sessions
     React.useEffect(() => {
-        loadSessions();
-    }, []);
+        if (currentUser) {
+            loadSessions();
+        }
+    }, [currentUser]);
 
     const loadSessions = async () => {
+        setIsLoadingSessions(true);
         try {
             const fetchedSessions = await getSessions();
             setSessions(fetchedSessions);
@@ -101,6 +121,29 @@ function App() {
         ));
     };
 
+    if (!currentUser) {
+        return <Login onLogin={(user) => { setCurrentUser(user); localStorage.setItem('currentUser', JSON.stringify(user)); }} />;
+    }
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+        localStorage.removeItem('currentUser');
+        setSessions([]);
+        setCurrentSessionId(null);
+    };
+
+    const handleDeleteChat = async (sessionId) => {
+        try {
+            await deleteSession(sessionId);
+            setSessions(prev => prev.filter(s => s.objectId !== sessionId));
+            if (currentSessionId === sessionId) {
+                setCurrentSessionId(null);
+            }
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+        }
+    };
+
     return (
       <div className="flex h-screen overflow-hidden bg-surface relative z-10" data-name="app" data-file="app.js">
         <Sidebar 
@@ -110,10 +153,15 @@ function App() {
             sessions={sessions}
             currentSessionId={currentSessionId}
             onSelectChat={handleSelectChat}
+            onDeleteChat={handleDeleteChat}
             language={language}
             setLanguage={setLanguage}
             currentLanguage={language}
             isLoading={isLoadingSessions}
+            theme={theme}
+            setTheme={setTheme}
+            currentUser={currentUser}
+            onLogout={handleLogout}
         />
         
         {/* Overlay for mobile sidebar */}
@@ -130,6 +178,7 @@ function App() {
             toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             onSessionCreated={onSessionCreated}
             onSessionUpdated={onSessionUpdated}
+            onGoHome={handleNewChat}
         />
       </div>
     );

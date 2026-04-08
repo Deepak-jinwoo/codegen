@@ -1,10 +1,16 @@
-function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, onSessionUpdated }) {
+function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, onSessionUpdated, onGoHome }) {
   const t = TRANSLATIONS[language];
   const [messages, setMessages] = React.useState([]);
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(false);
+  const [attachments, setAttachments] = React.useState([]);
+  const [isRecording, setIsRecording] = React.useState(false);
+  const [isTranscribing, setIsTranscribing] = React.useState(false);
   const messagesEndRef = React.useRef(null);
+  const fileInputRef = React.useRef(null);
+  const mediaRecorderRef = React.useRef(null);
+  const audioChunksRef = React.useRef([]);
 
   // Track if we are currently handling a session creation to prevent duplicates
   const creationInProgress = React.useRef(false);
@@ -41,6 +47,128 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     }
   };
 
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    const newFiles = files.slice(0, 4 - attachments.length);
+    newFiles.forEach(file => {
+      // Task 3: Validate file size and format before sending
+      if (!file.type.startsWith('image/')) {
+        console.error('Invalid file format. Only images are supported.');
+        alert('Only image files are supported.');
+        return;
+      }
+      
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        console.error(`File ${file.name} is too large. Maximum size is 4MB.`);
+        alert(`File ${file.name} is too large. maximum size is 4MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachments(prev => [...prev, {
+          name: file.name,
+          mimeType: file.type || 'image/jpeg',
+          data: event.target.result // Base64 data URI
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const API_BASE = window.location.port !== '3000' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000' : window.location.origin;
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.stop) {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    // Task 1: Check for blazing fast native Browser Speech Recognition (100% FREE, No NVIDIA API errors!)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onstart = () => setIsRecording(true);
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev.trim() ? " " : "") + transcript);
+      };
+      recognition.onerror = (event) => {
+        console.error("Native Speech recognition error:", event.error);
+        setIsRecording(false);
+      };
+      recognition.onend = () => setIsRecording(false);
+      
+      mediaRecorderRef.current = recognition;
+      recognition.start();
+      return;
+    }
+
+    // Task 2: Fallback to Backend Express Multi-Part Pipeline (If native isn't supported)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop()); // Release mic
+
+        setIsTranscribing(true);
+        try {
+          const formData = new FormData();
+          formData.append('audioFile', audioBlob, 'recording.webm');
+
+          const response = await fetch(`${API_BASE}/api/transcribe`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || 'Transcription failed');
+          }
+          const data = await response.json();
+          if (data.text) {
+            setInput(prev => prev + (prev.trim() ? " " : "") + data.text);
+          }
+        } catch (error) {
+          console.error("STT Error:", error);
+          alert(`Speech-to-text failed: ${error.message}`);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Microphone error:", error);
+      alert("Microphone access denied or not available. Note: browsers require localhost or HTTPS for mic API.");
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -49,38 +177,48 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const API_BASE = window.location.port !== '3000' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000' : window.location.origin;
 
-  const invokeAIWithRetry = async (sessionId, message, language, retries = 3) => {
+
+  const invokeAIWithRetry = async (sessionId, message, language, currentAttachments, retries = 3) => {
     for (let i = 0; i < retries; i++) {
       try {
+        const payload = { sessionId, message, language, attachments: currentAttachments };
+        console.log(`Sending payload to backend API (Attempt ${i+1}):`, payload);
+        
         const response = await fetch(`${API_BASE}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, message, language })
+          body: JSON.stringify(payload)
         });
+        
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `HTTP ${response.status}`);
+          console.error(`Backend API Error (Status ${response.status}):`, errData);
+          throw new Error(errData.error || `HTTP ${response.status} - Request failed`);
         }
+        
         const data = await response.json();
         return data.response;
       } catch (error) {
         console.warn(`AI request failed (attempt ${i + 1}/${retries}):`, error);
-        if (i === retries - 1) throw error;
-        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        if (i === retries - 1) {
+            throw new Error(error.message || "All retry attempts failed. Please check network and backend.");
+        }
+        await new Promise(res => setTimeout(res, 1000 * (i + 1))); // Exponential backoff
       }
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
     const content = input;
+    const submittedAttachments = [...attachments];
     setInput('');
+    setAttachments([]);
     setIsLoading(true);
 
-    const userMessage = { role: 'user', content };
+    const userMessage = { role: 'user', content, attachedFiles: submittedAttachments };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
@@ -103,16 +241,16 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       }
 
       if (currentId) {
-        await saveMessage(currentId, 'user', content);
+        await saveMessage(currentId, 'user', content, false, submittedAttachments);
       }
 
-      const responseText = await invokeAIWithRetry(currentId, content, language);
+      const aiResponse = await invokeAIWithRetry(currentId, content, language, submittedAttachments);
 
       if (currentId) {
-        await saveMessage(currentId, 'ai', responseText);
+        await saveMessage(currentId, 'ai', aiResponse, false, []);
       }
 
-      setMessages(prev => [...prev, { role: 'ai', content: responseText }]);
+      setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
 
     } catch (error) {
       console.error("AI/DB Error:", error);
@@ -202,6 +340,9 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
             <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">/</span>
             <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">v4.0</span>
           </div>
+          <button onClick={onGoHome} className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200" title="Home">
+            <span className="material-symbols-outlined">home</span>
+          </button>
           <button className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200">
             <span className="material-symbols-outlined">account_tree</span>
           </button>
@@ -276,28 +417,71 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
 
       {/* Floating Bottom Input Area */}
       <div className="shrink-0 px-4 md:px-12 pb-6 pt-2 z-40">
-        <div className="w-full max-w-4xl mx-auto relative group">
+        <div className="w-full max-w-4xl mx-auto relative group flex flex-col gap-2">
+          
+          {/* Attachment Previews */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-2">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="relative group/att">
+                  {att.mimeType?.startsWith('image/') ? (
+                    <img src={att.data} alt="attachment" className="w-16 h-16 object-cover rounded-lg border border-outline-variant/30" />
+                  ) : (
+                    <div className="w-16 h-16 bg-surface-container-high rounded-lg flex flex-col items-center justify-center border border-outline-variant/30">
+                      <span className="material-symbols-outlined text-xs text-slate-400">description</span>
+                      <span className="text-[8px] font-['Space_Grotesk'] text-slate-500 truncate w-12 text-center mt-1">{att.name}</span>
+                    </div>
+                  )}
+                  <button onClick={() => removeAttachment(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-lg opacity-0 group-hover/att:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Glass Background Glow */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-          <div className="relative bg-surface-container-lowest/80 backdrop-blur-2xl border border-outline-variant/20 rounded-xl shadow-2xl flex items-center p-2 pl-6 gap-4">
-            <span className="material-symbols-outlined text-primary-container/50">bolt</span>
-            <input
-              value={input}
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+            <div className="relative bg-surface-container-lowest/80 backdrop-blur-2xl border border-outline-variant/20 rounded-xl shadow-2xl flex items-center p-2 pl-6 gap-4">
+              <span className="material-symbols-outlined text-primary-container/50">bolt</span>
+              <input
+                value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-primary font-body text-sm placeholder:text-slate-600"
               placeholder={t.typePlaceholder || "Initialize a new codebase or ask for logic..."}
               type="text"
             />
+            <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept="image/*,.pdf,.txt,.js,.py,.json" multiple />
             <div className="flex items-center gap-2 pr-2">
-              <button className="p-2 text-slate-500 hover:text-primary transition-colors">
+              <button 
+                onClick={toggleRecording}
+                className={`p-2 transition-colors flex items-center justify-center rounded-full ${
+                  isRecording 
+                    ? 'bg-red-500/20 text-red-500 animate-pulse' 
+                    : isTranscribing
+                      ? 'text-[#00f5ff] opacity-50 cursor-wait'
+                      : 'text-slate-500 hover:text-primary hover:bg-surface-container-high'
+                }`}
+                disabled={isTranscribing}
+                title="Speech to Text"
+              >
+                <span className="material-symbols-outlined">{isRecording ? 'stop_circle' : 'mic'}</span>
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 text-slate-500 hover:text-primary transition-colors disabled:opacity-50"
+                disabled={attachments.length >= 4}
+                title="Attach files (Max 4)"
+              >
                 <span className="material-symbols-outlined">attachment</span>
               </button>
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || isLoading}
+                disabled={(!input.trim() && attachments.length === 0) || isLoading}
                 className={`font-['Space_Grotesk'] font-bold text-[10px] tracking-widest uppercase px-6 py-2.5 rounded-lg shadow-lg transition-all active:scale-95 ${
-                  input.trim() && !isLoading
+                  (input.trim() || attachments.length > 0) && !isLoading
                     ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary hover:brightness-110'
                     : 'bg-surface-container-high text-slate-600 cursor-not-allowed'
                 }`}
@@ -307,6 +491,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Status Metadata Footer */}

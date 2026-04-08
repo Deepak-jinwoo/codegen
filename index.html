@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Sentient Monolith | AI Code Interface</title>
-    <meta name="description" content="Sentient Monolith — Neural Architecture v4.0 AI-powered code generator with multi-language support.">
+    <meta name="description"
+        content="Sentient Monolith — Neural Architecture v4.0 AI-powered code generator with multi-language support.">
     <meta name="keywords" content="AI, code generator, sentient monolith, programming, neural architecture">
     <meta property="og:title" content="Sentient Monolith | AI Code Interface">
     <meta property="og:description" content="Neural Architecture v4.0 — AI-powered code generation.">
@@ -15,128 +17,459 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;700;800&family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;700;800&family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
 
     <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "surface-dim": "#0c1324",
-              "surface-container-highest": "#2e3447",
-              "on-tertiary-fixed": "#111c2d",
-              "primary": "#e9feff",
-              "on-error-container": "#ffdad6",
-              "error-container": "#93000a",
-              "surface-tint": "#00dce5",
-              "surface-container-lowest": "#070d1f",
-              "on-primary-fixed": "#002021",
-              "tertiary-container": "#d3def6",
-              "secondary-fixed": "#e9ddff",
-              "on-primary-container": "#006c71",
-              "on-background": "#dce1fb",
-              "tertiary-fixed-dim": "#bcc7de",
-              "outline-variant": "#3a494a",
-              "inverse-primary": "#00696e",
-              "tertiary-fixed": "#d8e3fb",
-              "secondary-container": "#571bc1",
-              "background": "#0c1324",
-              "on-primary-fixed-variant": "#004f53",
-              "on-tertiary": "#263143",
-              "primary-fixed": "#63f7ff",
-              "on-tertiary-container": "#576276",
-              "tertiary": "#fafaff",
-              "surface-bright": "#33394c",
-              "secondary": "#d0bcff",
-              "surface-container": "#191f31",
-              "on-tertiary-fixed-variant": "#3c475a",
-              "on-secondary-fixed": "#23005c",
-              "on-error": "#690005",
-              "on-surface-variant": "#b9caca",
-              "error": "#ffb4ab",
-              "primary-fixed-dim": "#00dce5",
-              "on-primary": "#003739",
-              "surface-variant": "#2e3447",
-              "surface-container-low": "#151b2d",
-              "on-secondary": "#3c0091",
-              "inverse-on-surface": "#2a3043",
-              "on-secondary-fixed-variant": "#5516be",
-              "inverse-surface": "#dce1fb",
-              "on-surface": "#dce1fb",
-              "secondary-fixed-dim": "#d0bcff",
-              "on-secondary-container": "#c4abff",
-              "primary-container": "#00f5ff",
-              "outline": "#849495",
-              "surface-container-high": "#23293c",
-              "surface": "#0c1324"
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#0c1324",
+                        "surface-container-highest": "#2e3447",
+                        "on-tertiary-fixed": "#111c2d",
+                        "primary": "#e9feff",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "surface-tint": "#00dce5",
+                        "surface-container-lowest": "#070d1f",
+                        "on-primary-fixed": "#002021",
+                        "tertiary-container": "#d3def6",
+                        "secondary-fixed": "#e9ddff",
+                        "on-primary-container": "#006c71",
+                        "on-background": "#dce1fb",
+                        "tertiary-fixed-dim": "#bcc7de",
+                        "outline-variant": "#3a494a",
+                        "inverse-primary": "#00696e",
+                        "tertiary-fixed": "#d8e3fb",
+                        "secondary-container": "#571bc1",
+                        "background": "#0c1324",
+                        "on-primary-fixed-variant": "#004f53",
+                        "on-tertiary": "#263143",
+                        "primary-fixed": "#63f7ff",
+                        "on-tertiary-container": "#576276",
+                        "tertiary": "#fafaff",
+                        "surface-bright": "#33394c",
+                        "secondary": "#d0bcff",
+                        "surface-container": "#191f31",
+                        "on-tertiary-fixed-variant": "#3c475a",
+                        "on-secondary-fixed": "#23005c",
+                        "on-error": "#690005",
+                        "on-surface-variant": "#b9caca",
+                        "error": "#ffb4ab",
+                        "primary-fixed-dim": "#00dce5",
+                        "on-primary": "#003739",
+                        "surface-variant": "#2e3447",
+                        "surface-container-low": "#151b2d",
+                        "on-secondary": "#3c0091",
+                        "inverse-on-surface": "#2a3043",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "inverse-surface": "#dce1fb",
+                        "on-surface": "#dce1fb",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-secondary-container": "#c4abff",
+                        "primary-container": "#00f5ff",
+                        "outline": "#849495",
+                        "surface-container-high": "#23293c",
+                        "surface": "#0c1324"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
             },
-            fontFamily: {
-              "headline": ["Manrope"],
-              "body": ["Inter"],
-              "label": ["Space Grotesk"]
-            },
-            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
-          },
-        },
-      }
+        }
     </script>
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
             font-size: 20px;
         }
+
         .light-leak-cyan {
             background: radial-gradient(circle at top left, rgba(0, 245, 255, 0.08) 0%, transparent 50%);
         }
+
         .light-leak-violet {
             background: radial-gradient(circle at bottom right, rgba(87, 27, 193, 0.1) 0%, transparent 50%);
         }
+
         .text-glow-primary {
             text-shadow: 0 0 30px rgba(0, 245, 255, 0.4);
         }
+
         .text-glow-secondary {
             text-shadow: 0 0 20px rgba(196, 171, 255, 0.3);
         }
+
         /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background-color: #3a494a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background-color: #849495; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #3a494a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #849495;
+        }
 
         /* Code block styling */
         pre code {
             font-family: 'Space Grotesk', 'Fira Code', monospace;
             font-size: 13px;
         }
+
         /* Animated gradient border */
         @keyframes border-glow {
-            0%, 100% { border-color: rgba(0, 245, 255, 0.2); }
-            50% { border-color: rgba(0, 245, 255, 0.5); }
+
+            0%,
+            100% {
+                border-color: rgba(0, 245, 255, 0.2);
+            }
+
+            50% {
+                border-color: rgba(0, 245, 255, 0.5);
+            }
         }
+
         .border-glow-anim {
             animation: border-glow 3s ease-in-out infinite;
         }
+
         /* Pulse dot */
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 4px #00f5ff; }
-            50% { box-shadow: 0 0 12px #00f5ff, 0 0 20px rgba(0,245,255,0.3); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 4px #00f5ff;
+            }
+
+            50% {
+                box-shadow: 0 0 12px #00f5ff, 0 0 20px rgba(0, 245, 255, 0.3);
+            }
         }
+
         .pulse-dot {
             animation: pulse-glow 2s ease-in-out infinite;
         }
+
         /* Typing animation */
         @keyframes typing-bounce {
-            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-            40% { transform: translateY(-6px); opacity: 1; }
+
+            0%,
+            80%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
         }
-        .typing-dot { animation: typing-bounce 1.4s infinite ease-in-out; }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .typing-dot {
+            animation: typing-bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* ═══════════════════════════════════════════
+           LIGHT MODE — comprehensive overrides
+           ═══════════════════════════════════════════ */
+
+        /* ── Base surfaces ── */
+        html.light body,
+        html.light [data-name="app"],
+        html.light [class*="bg-[#0c1324]"],
+        html.light .bg-surface {
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+        }
+
+        /* ── Containers / panels ── */
+        html.light [class*="bg-surface-container"],
+        html.light [class*="bg-surface-container-high"],
+        html.light [class*="bg-surface-container-low"],
+        html.light [class*="bg-surface-container-lowest"] {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        html.light [class*="bg-[#23293c]"] {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        html.light [class*="bg-[#070d1f]"] {
+            background-color: #1e293b !important;
+        }
+
+        /* ── Header / top bar ── */
+        html.light header,
+        html.light [class*="bg-[#0c1324]/40"] {
+            background-color: rgba(255,255,255,0.85) !important;
+            backdrop-filter: blur(16px) !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ── Sidebar rail + slide-out panels ── */
+        html.light [data-name="sidebar-rail"],
+        html.light [data-name="sidebar-mobile"],
+        html.light [class*="bg-[#0c1324]/95"] {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 2px 0 12px rgb(0 0 0 / 0.06) !important;
+        }
+
+        /* Active nav item in sidebar */
+        html.light [class*="bg-[#23293c]"][class*="shadow-[inset"] {
+            background-color: #e0f2fe !important;
+            box-shadow: inset 0 0 10px rgba(14,165,233,0.15) !important;
+        }
+
+        /* ── Primary accent: cyan → sky-600 ── */
+        html.light [class*="text-[#00f5ff]"],
+        html.light .text-primary-container {
+            color: #0284c7 !important;
+        }
+
+        html.light .text-primary {
+            color: #1e293b !important;
+        }
+
+        /* Keep heading accent colored */
+        html.light h1[class*="text-[#00f5ff]"] {
+            color: #0284c7 !important;
+        }
+
+        /* ── On-surface text (AI messages, body copy) ── */
+        html.light [class*="text-on-surface"],
+        html.light [class*="text-[#dce1fb]"],
+        html.light [class*="text-[#b9caca]"] {
+            color: #334155 !important;
+        }
+
+        /* ── Slate text (labels, muted text) ── */
+        html.light [class*="text-slate-300"],
+        html.light [class*="text-slate-400"],
+        html.light [class*="text-slate-500"],
+        html.light [class*="text-slate-600"] {
+            color: #64748b !important;
+        }
+
+        /* ── Secondary accent (purple elements) ── */
+        html.light .text-secondary,
+        html.light [class*="text-secondary"] {
+            color: #7c3aed !important;
+        }
+
+        html.light [class*="bg-secondary-container"] {
+            background-color: #ede9fe !important;
+        }
+
+        html.light [class*="text-on-secondary-container"] {
+            color: #5b21b6 !important;
+        }
+
+        /* ── User message bubble ── */
+        html.light [class*="bg-surface-container-high/60"] {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        /* Text inside user bubbles */
+        html.light [class*="bg-surface-container-high/60"] p {
+            color: #1e293b !important;
+        }
+
+        /* ── AI message text ── */
+        html.light [class*="text-on-surface/90"] {
+            color: #334155 !important;
+        }
+
+        /* ── Borders ── */
+        html.light [class*="border-outline-variant"],
+        html.light [class*="border-[#00f5ff]"],
+        html.light [class*="border-secondary/"] {
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ── Cyan-tinted backgrounds ── */
+        html.light [class*="bg-[#00f5ff]/"] {
+            background-color: #e0f2fe !important;
+        }
+
+        /* ── Hero heading glow → no glow, dark text ── */
+        html.light .text-glow-primary {
+            text-shadow: none !important;
+            color: #0c4a6e !important;
+        }
+
+        html.light .text-glow-secondary {
+            text-shadow: none !important;
+        }
+
+        /* ── Decorative background leaks ── */
+        html.light .light-leak-cyan,
+        html.light .light-leak-violet {
+            opacity: 0.04 !important;
+        }
+
+        /* ── Code blocks ── */
+        html.light pre,
+        html.light code {
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+        }
+
+        /* Keep the code block container dark for contrast */
+        html.light [class*="bg-[#070d1f]"] pre,
+        html.light [class*="bg-[#070d1f]"] code {
+            background-color: #1e293b !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* ── Input area ── */
+        html.light [class*="bg-surface-container-lowest/80"] {
+            background-color: rgba(255,255,255,0.9) !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        html.light input.bg-transparent,
+        html.light input[class*="bg-transparent"] {
+            color: #1e293b !important;
+        }
+
+        html.light input::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* ── Generate button ── */
+        html.light [class*="bg-gradient-to-br"][class*="from-primary"] {
+            background: linear-gradient(135deg, #0284c7, #0ea5e9) !important;
+            color: #ffffff !important;
+        }
+
+        /* ── Disabled generate button ── */
+        html.light [class*="bg-surface-container-high"][class*="cursor-not-allowed"] {
+            background-color: #e2e8f0 !important;
+            color: #94a3b8 !important;
+        }
+
+        /* ── Black overlays → white ── */
+        html.light [class*="bg-black/"] {
+            background-color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        /* ── Hover states on white/5 → visible ── */
+        html.light [class*="hover:bg-white/5"]:hover {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* ── Prompt cards ── */
+        html.light [class*="bg-surface-container-low/40"] {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.08) !important;
+        }
+
+        /* ── Prompt card text ── */
+        html.light [class*="bg-surface-container-low/40"] h3 {
+            color: #1e293b !important;
+        }
+
+        html.light [class*="bg-surface-container-low/40"] p {
+            color: #64748b !important;
+        }
+
+        /* ── Material icons in light mode ── */
+        html.light [class*="text-[#00f5ff]/50"],
+        html.light [class*="text-[#00f5ff]/60"],
+        html.light [class*="text-primary-container/50"] {
+            color: rgba(2,132,199,0.55) !important;
+        }
+
+        /* ── On-surface-variant ── */
+        html.light [class*="text-on-surface-variant"] {
+            color: #475569 !important;
+        }
+
+        /* ── Scrollbar for light mode ── */
+        html.light ::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1 !important;
+        }
+
+        html.light ::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8 !important;
+        }
+
+        /* ── Error containers ── */
+        html.light [class*="bg-error-container/"] {
+            background-color: #fef2f2 !important;
+        }
+
+        html.light .text-error,
+        html.light [class*="text-error"] {
+            color: #dc2626 !important;
+        }
+
+        /* ── Dot grid background ── */
+        html.light [class*="opacity-[0.03]"] {
+            opacity: 0.02 !important;
+        }
+
+        /* ── Settings panel buttons ── */
+        html.light [class*="bg-[#00f5ff]/10"] {
+            background-color: #e0f2fe !important;
+        }
+
+        /* ── Loading spinner ── */
+        html.light [class*="border-[#00f5ff]/30"] {
+            border-color: rgba(14,165,233,0.3) !important;
+        }
+
+        html.light [class*="border-t-[#00f5ff]"] {
+            border-top-color: #0284c7 !important;
+        }
+
+        /* ── Typing dots ── */
+        html.light [class*="bg-[#00f5ff]"] {
+            background-color: #0284c7 !important;
+        }
+
+        /* ── Pulse dot ── */
+        html.light .pulse-dot {
+            box-shadow: 0 0 4px #0284c7 !important;
+        }
     </style>
 </head>
-<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden">
+
+<body
+    class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden">
 
     <!-- Global Background Elements -->
     <div class="fixed inset-0 pointer-events-none z-0">
@@ -146,7 +479,9 @@
 
     <!-- Background Decoration: Monolith Grid Texture -->
     <div class="fixed inset-0 pointer-events-none z-0 opacity-[0.03]">
-        <div class="w-full h-full" style="background-image: radial-gradient(#63f7ff 0.5px, transparent 0.5px); background-size: 40px 40px;"></div>
+        <div class="w-full h-full"
+            style="background-image: radial-gradient(#63f7ff 0.5px, transparent 0.5px); background-size: 40px 40px;">
+        </div>
     </div>
 
     <div id="root" class="h-full"></div>
@@ -157,6 +492,7 @@
     <script type="text/babel" src="utils/db.js"></script>
 
     <!-- Components -->
+    <script type="text/babel" src="components/Login.js"></script>
     <script type="text/babel" src="components/Sidebar.js"></script>
     <script type="text/babel" src="components/MessageItem.js"></script>
     <script type="text/babel" src="components/ChatInterface.js"></script>
@@ -164,4 +500,5 @@
     <!-- Main App -->
     <script type="text/babel" src="app.js"></script>
 </body>
+
 </html>
