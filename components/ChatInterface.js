@@ -10,6 +10,18 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const messagesEndRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  const profileRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -352,24 +364,8 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
             <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">v4.0</span>
           </div>
           {/* User Profile Avatar */}
-          {(() => {
-            const [profileOpen, setProfileOpen] = React.useState(false);
-            const profileRef = React.useRef(null);
-
-            // Close dropdown when clicking outside
-            React.useEffect(() => {
-              const handleClickOutside = (e) => {
-                if (profileRef.current && !profileRef.current.contains(e.target)) {
-                  setProfileOpen(false);
-                }
-              };
-              document.addEventListener('mousedown', handleClickOutside);
-              return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
-
-            return (
-              <div className="relative" ref={profileRef}>
-                <button 
+          <div className="relative" ref={profileRef}>
+            <button 
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#00dce5] to-[#571bc1] flex items-center justify-center shadow-lg hover:shadow-[0_0_20px_rgba(0,245,255,0.35)] transition-all duration-300 hover:scale-105 ring-2 ring-transparent hover:ring-[#00f5ff]/40 overflow-hidden focus:outline-none"
                 >
@@ -434,8 +430,6 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
                   </div>
                 )}
               </div>
-            );
-          })()}
         </div>
       </header>
 
