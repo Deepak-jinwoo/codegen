@@ -374,20 +374,20 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
             /* Welcome / Hero Screen */
             <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 py-12">
               {/* Hero Header */}
-              <div className="space-y-4">
-                <p className="font-['Space_Grotesk'] text-primary-container text-xs tracking-[0.4em] uppercase opacity-70">Neural Architecture v4.0</p>
-                <h2 className="font-['Manrope'] font-extrabold text-5xl md:text-7xl text-primary leading-tight tracking-tighter text-glow-primary uppercase">
+              <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
+                <p className="font-['Space_Grotesk'] text-primary-container text-[10px] sm:text-xs tracking-[0.3em] sm:tracking-[0.4em] uppercase opacity-70">Neural Architecture v4.0</p>
+                <h2 className="font-['Manrope'] font-extrabold text-4xl sm:text-5xl md:text-7xl text-primary leading-tight tracking-tighter text-glow-primary uppercase">
                   How can I help<br/>you code today?
                 </h2>
               </div>
 
               {/* Suggested Prompt Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-full px-2 sm:px-0">
                 {promptCards.map((card, idx) => (
                   <button
                     key={idx}
                     onClick={() => setInput(card.title)}
-                    className={`group relative flex flex-col items-start p-6 bg-surface-container-low/40 backdrop-blur-md border border-outline-variant/10 rounded-xl ${card.hoverShadow} ${card.hoverBorder} hover:bg-surface-container-high transition-all duration-500 text-left overflow-hidden`}
+                    className={`group relative flex flex-col items-start p-5 sm:p-6 bg-surface-container-low/40 backdrop-blur-md border border-outline-variant/10 rounded-xl ${card.hoverShadow} ${card.hoverBorder} hover:bg-surface-container-high transition-all duration-500 hover:-translate-y-1 text-left overflow-hidden`}
                   >
                     <span className={`material-symbols-outlined ${card.iconColor} mb-4 opacity-60 group-hover:opacity-100 transition-opacity`}>{card.icon}</span>
                     <p className="font-['Space_Grotesk'] text-xs tracking-widest text-slate-500 uppercase mb-1">{card.label}</p>
@@ -430,7 +430,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       </section>
 
       {/* Floating Bottom Input Area */}
-      <div className="shrink-0 px-4 md:px-12 pb-6 pt-2 z-40">
+      <div className="shrink-0 px-2 sm:px-4 md:px-12 pb-4 sm:pb-6 pt-2 z-40 w-full overflow-hidden">
         <div className="w-full max-w-4xl mx-auto relative group flex flex-col gap-2">
           
           {/* Attachment Previews */}
@@ -457,18 +457,18 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
           {/* Glass Background Glow */}
           <div className="relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-            <div className="relative bg-surface-container-lowest/80 backdrop-blur-2xl border border-outline-variant/20 rounded-xl shadow-2xl flex items-center p-2 pl-6 gap-4">
-              <span className="material-symbols-outlined text-primary-container/50">bolt</span>
+            <div className="relative bg-surface-container-lowest/80 backdrop-blur-2xl border border-outline-variant/20 rounded-xl shadow-2xl flex items-center p-1.5 sm:p-2 pl-3 sm:pl-6 gap-2 sm:gap-4 transition-all duration-300">
+              <span className="material-symbols-outlined text-primary-container/50 hidden sm:block">bolt</span>
               <input
                 value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-primary font-body text-sm placeholder:text-slate-600"
-              placeholder={t.typePlaceholder || "Initialize a new codebase or ask for logic..."}
+              className="flex-1 min-w-0 bg-transparent border-none focus:ring-0 focus:outline-none text-primary font-body text-xs sm:text-sm placeholder:text-slate-600 truncate"
+              placeholder={t.typePlaceholder || "New codebase or ask for logic..."}
               type="text"
             />
             <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept="image/*,.pdf,.txt,.js,.py,.json" multiple />
-            <div className="flex items-center gap-2 pr-2">
+            <div className="flex items-center gap-1 sm:gap-2 pr-1 sm:pr-2">
               <button 
                 onClick={toggleRecording}
                 className={`p-2 transition-colors flex items-center justify-center rounded-full ${
@@ -494,13 +494,14 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
               <button
                 onClick={handleSend}
                 disabled={(!input.trim() && attachments.length === 0) || isLoading}
-                className={`font-['Space_Grotesk'] font-bold text-[10px] tracking-widest uppercase px-6 py-2.5 rounded-lg shadow-lg transition-all active:scale-95 ${
+                className={`font-['Space_Grotesk'] font-bold text-[10px] tracking-widest uppercase px-4 py-2.5 sm:px-6 rounded-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
                   (input.trim() || attachments.length > 0) && !isLoading
-                    ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary hover:brightness-110'
+                    ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary hover:brightness-110 hover:-translate-y-0.5'
                     : 'bg-surface-container-high text-slate-600 cursor-not-allowed'
                 }`}
               >
-                GENERATE
+                <span className="hidden sm:inline">GENERATE</span>
+                <span className="material-symbols-outlined sm:hidden" style={{ fontSize: '18px' }}>send</span>
               </button>
             </div>
           </div>
