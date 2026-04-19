@@ -23,6 +23,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet">
 
+    <!-- Firebase Auth SDK (login service only — app deploys on Render) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBvzN58q88NbB0i_Y1dyVXQKOHTZgWu3Ak",
+        authDomain: "code-generator-adafe.firebaseapp.com",
+        projectId: "code-generator-adafe",
+        appId: "1:136400180297:web:be49853cdcf1ee95e19b98"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+    </script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -493,6 +507,7 @@
 
     <!-- Components -->
     <script type="text/babel" src="components/Login.js"></script>
+    <script type="text/babel" src="components/OnboardingModal.js"></script>
     <script type="text/babel" src="components/Sidebar.js"></script>
     <script type="text/babel" src="components/MessageItem.js"></script>
     <script type="text/babel" src="components/ChatInterface.js"></script>

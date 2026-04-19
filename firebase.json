@@ -13,5 +13,13 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "CodeGen",
+        "supportEmail": "msdeepak113@gmail.com"
+      }
+    }
   }
 }

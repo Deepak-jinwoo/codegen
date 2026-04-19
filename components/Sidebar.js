@@ -1,4 +1,4 @@
-function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSelectChat, onDeleteChat, language, setLanguage, currentLanguage, isLoading, theme, setTheme, currentUser, onLogout }) {
+function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSelectChat, onDeleteChat, language, setLanguage, currentLanguage, isLoading, theme, setTheme, currentUser, onLogout, skillLevel, onUpdateSkillLevel }) {
   const t = TRANSLATIONS[currentLanguage];
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -64,16 +64,6 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
             title={`Language: ${t.langName} — Click to change`}
           >
             <span className="font-['Space_Grotesk'] text-xs font-bold text-[#00f5ff] uppercase">{currentLanguage}</span>
-          </div>
-
-          <div
-            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#00dce5] to-[#571bc1] flex items-center justify-center cursor-pointer shadow-lg hover:shadow-[0_0_15px_rgba(0,245,255,0.4)] transition-all"
-            onClick={onLogout}
-            title={`Logged in as ${currentUser?.email}\nClick to Logout`}
-          >
-            <span className="font-['Space_Grotesk'] text-xs font-bold text-white uppercase">
-              {currentUser?.email ? currentUser.email.charAt(0) : 'U'}
-            </span>
           </div>
         </div>
       </aside>
@@ -154,6 +144,24 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
         </div>
         
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          {/* AI Skill Level (Desktop) */}
+          <div>
+            <h3 className="text-xs font-['Space_Grotesk'] tracking-widest text-[#00f5ff] uppercase mb-4 opacity-80">AI Tuning</h3>
+            <div className="bg-surface-container-high rounded-xl border border-outline-variant/20 overflow-hidden text-sm p-4">
+               <label className="block text-slate-400 font-['Inter'] text-xs mb-2">Current Skill Level</label>
+               <select 
+                 value={skillLevel || 'newbie'} 
+                 onChange={(e) => onUpdateSkillLevel(e.target.value)}
+                 className="w-full bg-surface-container-lowest border border-outline-variant/30 text-primary p-2 flex items-center justify-between rounded-lg font-['Inter'] text-sm focus:outline-none focus:border-[#00f5ff]/50"
+               >
+                 <option value="newbie">New to Coding</option>
+                 <option value="beginner">Beginner</option>
+                 <option value="intermediate">Intermediate</option>
+                 <option value="practice">Practice / Interview</option>
+               </select>
+            </div>
+          </div>
+
           {/* Theme Toggle */}
           <div>
             <h3 className="text-xs font-['Space_Grotesk'] tracking-widest text-[#00f5ff] uppercase mb-4 opacity-80">Appearance</h3>
@@ -279,6 +287,24 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
             <div className="text-[#00f5ff] text-[10px] font-['Space_Grotesk'] tracking-widest border border-outline-variant/30 px-2 py-0.5 rounded uppercase">
               {currentLanguage}
             </div>
+          </div>
+
+          {/* AI Skill Level (Mobile) */}
+          <div className="flex flex-col gap-2 px-3 py-2 rounded-lg bg-surface-container-high">
+            <div className="flex items-center gap-2 text-sm text-primary mb-1">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>tune</span>
+              <span className="font-['Space_Grotesk'] text-xs">AI Skill Level</span>
+            </div>
+            <select 
+               value={skillLevel || 'newbie'} 
+               onChange={(e) => onUpdateSkillLevel(e.target.value)}
+               className="w-full bg-surface-container-lowest border border-outline-variant/30 text-primary p-1.5 rounded text-xs font-['Inter'] focus:outline-none focus:border-[#00f5ff]/50"
+             >
+               <option value="newbie">New to Coding</option>
+               <option value="beginner">Beginner</option>
+               <option value="intermediate">Intermediate</option>
+               <option value="practice">Practice / Interview</option>
+             </select>
           </div>
 
           {/* User Profile */}

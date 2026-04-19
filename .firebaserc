@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "code-generator-adafe"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

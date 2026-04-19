@@ -588,6 +588,25 @@ function loginUser(email, password) {
   }
 }
 
+function syncOAuthUser(uid, email) {
+  try {
+    const existing = db.exec(`SELECT * FROM users WHERE email = '${email}'`);
+    if (existing.length > 0 && existing[0].values.length > 0) {
+      const user = _resultToObject(existing);
+      return { id: user.id, email: user.email };
+    }
+    db.run(
+      `INSERT INTO users (id, email, password) VALUES (?, ?, ?)`,
+      [uid, email, 'oauth-user-no-pwd']
+    );
+    saveToFile();
+    return { id: uid, email };
+  } catch (error) {
+    console.error('syncOAuthUser error:', error.message);
+    throw error;
+  }
+}
+
 // ──────────────────────────────────────────────
 // Database Lifecycle
 // ──────────────────────────────────────────────
@@ -633,5 +652,6 @@ module.exports = {
 
   // Auth
   registerUser,
-  loginUser
+  loginUser,
+  syncOAuthUser
 };

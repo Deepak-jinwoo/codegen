@@ -71,6 +71,18 @@ app.post('/api/login', (req, res) => {
   }
 });
 
+// POST /api/auth/sync
+app.post('/api/auth/sync', (req, res) => {
+  try {
+    const { uid, email } = req.body;
+    if (!uid || !email) return res.status(400).json({ error: 'UID and email required' });
+    const user = db.syncOAuthUser(uid, email);
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ══════════════════════════════════════════════
 // SESSION ENDPOINTS
 // ══════════════════════════════════════════════
@@ -205,11 +217,24 @@ app.post('/api/messages', (req, res) => {
  */
 // POST /api/chat — Invoke the AI Chat
 app.post('/api/chat', async (req, res) => {
-  const { sessionId, message, language, attachments } = req.body;
+  const { sessionId, message, language, attachments, skillLevel } = req.body;
 
   try {
     const promptLang = language || 'en';
-    const systemPrompt = SYSTEM_PROMPTS[promptLang] || SYSTEM_PROMPTS['en'];
+    let systemPrompt = SYSTEM_PROMPTS[promptLang] || SYSTEM_PROMPTS['en'];
+
+    // Adapt system prompt based on user's selected skill level
+    if (skillLevel) {
+      const skillInstructions = {
+        'newbie': '\n\nIMPORTANT INSTRUCTION: The user is completely new to coding. Provide very simple, step-by-step explanations. Avoid jargon, use basic analogies, and explain what EVERY line of code does.',
+        'beginner': '\n\nIMPORTANT INSTRUCTION: The user is a beginner. Provide moderate explanations with clear examples. Explain key concepts clearly.',
+        'intermediate': '\n\nIMPORTANT INSTRUCTION: The user is an intermediate programmer. Focus on logic, architecture, and optimization. Do not over-explain basic syntax.',
+        'practice': '\n\nIMPORTANT INSTRUCTION: The user is practicing. Act as a technical interviewer. DO NOT give direct answers right away. Provide challenges and minimal hints.'
+      };
+      if (skillInstructions[skillLevel]) {
+        systemPrompt += skillInstructions[skillLevel];
+      }
+    }
 
     // 1. Get Conversation Memory
     let history = [];

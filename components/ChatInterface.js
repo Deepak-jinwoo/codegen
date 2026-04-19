@@ -1,4 +1,4 @@
-function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, onSessionUpdated, onGoHome }) {
+function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, onSessionUpdated, onGoHome, skillLevel, currentUser, onLogout }) {
   const t = TRANSLATIONS[language];
   const [messages, setMessages] = React.useState([]);
   const [input, setInput] = React.useState('');
@@ -196,7 +196,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
   const invokeAIWithRetry = async (sessionId, message, language, currentAttachments, retries = 3) => {
     for (let i = 0; i < retries; i++) {
       try {
-        const payload = { sessionId, message, language, attachments: currentAttachments };
+        const payload = { sessionId, message, language, skillLevel, attachments: currentAttachments };
         console.log(`Sending payload to backend API (Attempt ${i+1}):`, payload);
         
         const response = await fetch(`${API_BASE}/api/chat`, {
@@ -340,12 +340,9 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
           </button>
           <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-base md:text-lg">CODEGEN</h1>
           <div className="hidden md:flex gap-6">
-            <span className={`font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-default ${
-              !sessionId ? 'text-[#00f5ff] border-b border-[#00f5ff] pb-1' : 'text-slate-400 hover:text-primary transition-colors cursor-pointer'
-            }`}>WORKSPACE</span>
-            <span className={`font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-pointer ${
-              sessionId ? 'text-[#00f5ff] border-b border-[#00f5ff] pb-1' : 'text-slate-400 hover:text-primary transition-colors'
-            }`}>CHAT</span>
+            <span className="font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-default text-[#00f5ff] border-b border-[#00f5ff] pb-1">
+              CHAT
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-4 text-primary">
@@ -354,15 +351,91 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
             <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">/</span>
             <span className="font-['Space_Grotesk'] text-[10px] tracking-widest text-slate-300">v4.0</span>
           </div>
-          <button onClick={onGoHome} className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200" title="Home">
-            <span className="material-symbols-outlined">home</span>
-          </button>
-          <button className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200">
-            <span className="material-symbols-outlined">account_tree</span>
-          </button>
-          <button className="hover:bg-white/5 p-2 rounded-full transition-colors duration-200">
-            <span className="material-symbols-outlined">sensors</span>
-          </button>
+          {/* User Profile Avatar */}
+          {(() => {
+            const [profileOpen, setProfileOpen] = React.useState(false);
+            const profileRef = React.useRef(null);
+
+            // Close dropdown when clicking outside
+            React.useEffect(() => {
+              const handleClickOutside = (e) => {
+                if (profileRef.current && !profileRef.current.contains(e.target)) {
+                  setProfileOpen(false);
+                }
+              };
+              document.addEventListener('mousedown', handleClickOutside);
+              return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+
+            return (
+              <div className="relative" ref={profileRef}>
+                <button 
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#00dce5] to-[#571bc1] flex items-center justify-center shadow-lg hover:shadow-[0_0_20px_rgba(0,245,255,0.35)] transition-all duration-300 hover:scale-105 ring-2 ring-transparent hover:ring-[#00f5ff]/40 overflow-hidden focus:outline-none"
+                >
+                  {currentUser?.photoURL ? (
+                    <img src={currentUser.photoURL} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <span className="font-['Space_Grotesk'] text-sm font-bold text-white uppercase">
+                      {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
+                    </span>
+                  )}
+                </button>
+                {/* Dropdown Menu */}
+                {profileOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-56 bg-[#131b2e]/95 backdrop-blur-2xl border border-[#00f5ff]/15 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-[fadeIn_0.15s_ease-out]">
+                    {/* User Info Header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-[#00dce5]/10 to-[#571bc1]/10 border-b border-outline-variant/15">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00dce5] to-[#571bc1] flex items-center justify-center shrink-0 overflow-hidden">
+                          {currentUser?.photoURL ? (
+                            <img src={currentUser.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            <span className="font-['Space_Grotesk'] text-xs font-bold text-white uppercase">
+                              {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-200 font-['Inter'] truncate">
+                            {currentUser?.displayName || 'Guest User'}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-['Inter'] truncate">
+                            {currentUser?.email || 'Not signed in'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Menu Items */}
+                    <div className="p-1.5">
+                      <button 
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-300 hover:text-[#00f5ff] hover:bg-[#00f5ff]/5 rounded-lg transition-all duration-150 text-left font-['Inter'] font-medium"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">tune</span>
+                        AI Settings
+                      </button>
+                      <button 
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-300 hover:text-[#00f5ff] hover:bg-[#00f5ff]/5 rounded-lg transition-all duration-150 text-left font-['Inter'] font-medium"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">translate</span>
+                        Language
+                      </button>
+                      <div className="border-t border-outline-variant/15 my-1"></div>
+                      <button 
+                        onClick={() => { setProfileOpen(false); onLogout(); }}
+                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-150 text-left font-['Inter'] font-semibold"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">logout</span>
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </header>
 

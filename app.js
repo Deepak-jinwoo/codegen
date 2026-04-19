@@ -43,10 +43,50 @@ function App() {
     const [currentSessionId, setCurrentSessionId] = React.useState(null);
     const [isLoadingSessions, setIsLoadingSessions] = React.useState(true);
     const [theme, setTheme] = React.useState(() => localStorage.getItem('theme') || 'dark');
+    const [showToast, setShowToast] = React.useState(null);
     const [currentUser, setCurrentUser] = React.useState(() => {
         const saved = localStorage.getItem('currentUser');
         return saved ? JSON.parse(saved) : null;
     });
+    const [skillLevel, setSkillLevel] = React.useState(() => {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            const parsed = JSON.parse(savedUser);
+            return localStorage.getItem('skillLevel_' + parsed.email) || null;
+        }
+        return null;
+    });
+
+    const handleSelectSkillLevel = (level) => {
+        setSkillLevel(level);
+        if (currentUser) {
+            localStorage.setItem('skillLevel_' + currentUser.email, level);
+        }
+    };
+
+    // Firebase Auth — listen for login state changes
+    React.useEffect(() => {
+        const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                try {
+                    const syncRes = await fetch('/api/auth/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: user.uid, email: user.email })
+                    });
+                    if (syncRes.ok) {
+                        const sqliteUser = await syncRes.json();
+                        const fullUser = { ...sqliteUser, photoURL: user.photoURL, displayName: user.displayName };
+                        setCurrentUser(fullUser);
+                        localStorage.setItem('currentUser', JSON.stringify(fullUser));
+                    }
+                } catch (err) {
+                    console.error('Auth sync error:', err);
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
     // Handle theme class on root element
     React.useEffect(() => {
@@ -121,15 +161,59 @@ function App() {
         ));
     };
 
-    if (!currentUser) {
-        return <Login onLogin={(user) => { setCurrentUser(user); localStorage.setItem('currentUser', JSON.stringify(user)); }} />;
-    }
+
 
     const handleLogout = () => {
+        // Clear state immediately — don't depend on Firebase signOut succeeding
         setCurrentUser(null);
+        setSkillLevel(null);
         localStorage.removeItem('currentUser');
         setSessions([]);
         setCurrentSessionId(null);
+        
+        // Show logout toast
+        setShowToast('Logged out successfully');
+        setTimeout(() => setShowToast(null), 2500);
+
+        // Also sign out from Firebase Auth (fire-and-forget)
+        try {
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().catch(() => {});
+            }
+        } catch (e) {
+            // Ignore — state is already cleared
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await firebase.auth().signInWithPopup(provider);
+            const user = result.user;
+            
+            const syncRes = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: user.uid, email: user.email })
+            });
+            if (syncRes.ok) {
+                const sqliteUser = await syncRes.json();
+                const fullUser = { ...sqliteUser, photoURL: user.photoURL, displayName: user.displayName };
+                setCurrentUser(fullUser);
+                localStorage.setItem('currentUser', JSON.stringify(fullUser));
+                setShowToast(`Welcome, ${user.displayName || user.email}!`);
+                setTimeout(() => setShowToast(null), 3000);
+            }
+        } catch (error) {
+            console.error('Google Auth Error:', error.code, error.message);
+            if (error.code === 'auth/unauthorized-domain') {
+                alert('This domain is not authorized. Add it in Firebase Console > Authentication > Settings > Authorized domains.');
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                // User closed the popup, no error needed
+            } else {
+                alert('Sign-in failed: ' + (error.message || 'Unknown error'));
+            }
+        }
     };
 
     const handleDeleteChat = async (sessionId) => {
@@ -144,8 +228,41 @@ function App() {
         }
     };
 
+    // Email/password login handler (for Login.js form)
+    const handleEmailLogin = (user) => {
+        const fullUser = { ...user, photoURL: null, displayName: user.email };
+        setCurrentUser(fullUser);
+        localStorage.setItem('currentUser', JSON.stringify(fullUser));
+        setShowToast(`Welcome, ${user.email}!`);
+        setTimeout(() => setShowToast(null), 3000);
+    };
+
+    // If not logged in, show login page
+    if (!currentUser) {
+      return (
+        <div className="relative" data-name="app" data-file="app.js">
+          {/* Toast */}
+          {showToast && (
+            <div className="fixed top-6 right-4 z-[9999] bg-surface-container-high border border-[#00f5ff]/30 text-primary px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(0,245,255,0.1)] font-['Manrope'] font-bold text-sm animate-[fadeInDown_0.3s_ease-out]">
+              {showToast}
+            </div>
+          )}
+          <Login onLogin={handleEmailLogin} />
+        </div>
+      );
+    }
+
     return (
       <div className="flex h-screen overflow-hidden bg-surface relative z-10" data-name="app" data-file="app.js">
+        
+        {/* Welcome Toast Notification */}
+        {showToast && (
+            <div className="fixed top-20 right-4 z-[9999] bg-surface-container-high border border-[#00f5ff]/30 text-primary px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(0,245,255,0.1)] font-['Manrope'] font-bold text-sm shadow-xl slide-in-right animate-[fadeInDown_0.3s_ease-out]">
+                {showToast}
+            </div>
+        )}
+
+        {!skillLevel && currentUser && <OnboardingModal onSelect={handleSelectSkillLevel} />}
         <Sidebar 
             isOpen={sidebarOpen} 
             onClose={() => setSidebarOpen(false)}
@@ -162,6 +279,8 @@ function App() {
             setTheme={setTheme}
             currentUser={currentUser}
             onLogout={handleLogout}
+            skillLevel={skillLevel}
+            onUpdateSkillLevel={handleSelectSkillLevel}
         />
         
         {/* Overlay for mobile sidebar */}
@@ -179,6 +298,9 @@ function App() {
             onSessionCreated={onSessionCreated}
             onSessionUpdated={onSessionUpdated}
             onGoHome={handleNewChat}
+            skillLevel={skillLevel}
+            currentUser={currentUser}
+            onLogout={handleLogout}
         />
       </div>
     );
