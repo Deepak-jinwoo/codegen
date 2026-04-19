@@ -7,8 +7,22 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
   const [attachments, setAttachments] = React.useState([]);
   const [isRecording, setIsRecording] = React.useState(false);
   const [isTranscribing, setIsTranscribing] = React.useState(false);
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const messagesEndRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   const mediaRecorderRef = React.useRef(null);
   const audioChunksRef = React.useRef([]);
 
@@ -324,7 +338,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
           <button onClick={toggleSidebar} className="md:hidden p-2 -ml-2 text-slate-400 hover:text-[#00f5ff] transition-colors">
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-base md:text-lg">SENTIENT MONOLITH</h1>
+          <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-base md:text-lg">CODEGEN</h1>
           <div className="hidden md:flex gap-6">
             <span className={`font-['Space_Grotesk'] tracking-[0.2em] text-xs cursor-default ${
               !sessionId ? 'text-[#00f5ff] border-b border-[#00f5ff] pb-1' : 'text-slate-400 hover:text-primary transition-colors cursor-pointer'
@@ -497,8 +511,10 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       {/* Status Metadata Footer */}
       <div className="hidden md:flex shrink-0 px-8 pb-3 items-center justify-end gap-6 pointer-events-none">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></div>
-          <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.2em] text-slate-400 uppercase">System Core Active</span>
+          <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'} ${isOnline ? 'pulse-dot' : ''}`}></div>
+          <span className={`font-['Space_Grotesk'] text-[9px] tracking-[0.2em] uppercase ${isOnline ? 'text-green-500' : 'text-red-500'}`}>
+            {isOnline ? 'System Online' : 'System Offline'}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="font-['Space_Grotesk'] text-[9px] tracking-[0.2em] text-slate-600 uppercase">Neural Engine v4.0</span>

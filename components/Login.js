@@ -42,10 +42,9 @@ function Login({ onLogin }) {
       <div className="w-full max-w-md bg-[#0c1324]/80 backdrop-blur-2xl border border-outline-variant/30 rounded-2xl p-8 relative z-10 shadow-2xl">
         <div className="flex flex-col items-center mb-8">
           <span className="material-symbols-outlined text-[#00f5ff] mb-4" style={{ fontSize: '48px' }}>terminal</span>
-          <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-2xl text-center">SENTIENT MONOLITH</h1>
+          <h1 className="font-['Manrope'] font-black tracking-widest text-[#00f5ff] text-2xl text-center">CODEGEN</h1>
           <p className="font-['Space_Grotesk'] text-slate-400 text-xs tracking-widest uppercase mt-2">Neural Authentication</p>
         </div>
-
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-['Space_Grotesk'] p-3 rounded-lg mb-6 text-center">
             {error}
