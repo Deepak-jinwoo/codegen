@@ -342,7 +342,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
   }
 
   return (
-    <main className="flex-1 flex flex-col relative" data-name="chat-interface">
+    <main className="flex-1 flex flex-col relative h-[100dvh] min-h-0 overflow-hidden w-full max-w-full" data-name="chat-interface">
       {/* Top App Bar */}
       <header className="h-16 flex justify-between items-center px-6 md:px-12 bg-[#0c1324]/40 backdrop-blur-xl border-b border-outline-variant/20 z-50 shrink-0">
         <div className="flex items-center gap-6">
@@ -434,12 +434,12 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       </header>
 
       {/* Chat Canvas */}
-      <section className="flex-1 overflow-y-auto px-4 md:px-6 pb-28 md:pb-6 relative z-10">
-        <div className="max-w-4xl mx-auto w-full flex flex-col min-h-full">
+      <section className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 pb-28 md:pb-6 relative z-10 w-full">
+        <div className="max-w-4xl mx-auto w-full flex flex-col min-h-full min-w-0">
 
           {messages.length === 0 && !sessionId ? (
             /* Welcome / Hero Screen */
-            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 py-12">
+            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 py-12 w-full min-w-0">
               {/* Hero Header */}
               <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
                 <p className="font-['Space_Grotesk'] text-primary-container text-[10px] sm:text-xs tracking-[0.3em] sm:tracking-[0.4em] uppercase opacity-70">Neural Architecture v4.0</p>

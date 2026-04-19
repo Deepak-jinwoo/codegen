@@ -29,8 +29,8 @@ function MessageItem({ message, isLast, language }) {
   };
 
   return (
-    <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-6 group`} data-name="message-item">
-      <div className={`flex max-w-[95%] md:max-w-[85%] gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex w-full min-w-0 ${isUser ? 'justify-end' : 'justify-start'} mb-6 group`} data-name="message-item">
+      <div className={`flex min-w-0 max-w-[95%] md:max-w-[85%] gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         
         {/* Avatar */}
         <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center border ${

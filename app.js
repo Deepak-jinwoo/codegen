@@ -253,7 +253,7 @@ function App() {
     }
 
     return (
-      <div className="flex h-screen overflow-hidden bg-surface relative z-10" data-name="app" data-file="app.js">
+      <div className="flex min-w-0 h-[100dvh] w-full max-w-full overflow-hidden bg-surface relative z-10" data-name="app" data-file="app.js">
         
         {/* Welcome Toast Notification */}
         {showToast && (

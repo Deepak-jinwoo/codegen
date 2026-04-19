@@ -46,11 +46,11 @@ const SYSTEM_PROMPTS = {
 // ══════════════════════════════════════════════
 
 // POST /api/register
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    const user = db.registerUser(email, password);
+    const user = await db.registerUser(email, password);
     res.json({ success: true, user });
   } catch (error) {
     if (error.message.includes('Email already exists')) return res.status(400).json({ error: error.message });
@@ -59,11 +59,11 @@ app.post('/api/register', (req, res) => {
 });
 
 // POST /api/login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    const user = db.loginUser(email, password);
+    const user = await db.loginUser(email, password);
     res.json({ success: true, user });
   } catch (error) {
     if (error.message.includes('Invalid email or password')) return res.status(401).json({ error: error.message });
@@ -72,11 +72,11 @@ app.post('/api/login', (req, res) => {
 });
 
 // POST /api/auth/sync
-app.post('/api/auth/sync', (req, res) => {
+app.post('/api/auth/sync', async (req, res) => {
   try {
     const { uid, email } = req.body;
     if (!uid || !email) return res.status(400).json({ error: 'UID and email required' });
-    const user = db.syncOAuthUser(uid, email);
+    const user = await db.syncOAuthUser(uid, email);
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -88,11 +88,11 @@ app.post('/api/auth/sync', (req, res) => {
 // ══════════════════════════════════════════════
 
 // GET /api/sessions — List all sessions (newest first)
-app.get('/api/sessions', (req, res) => {
+app.get('/api/sessions', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const userId = req.query.userId || null;
-    const sessions = db.getSessions(userId, limit);
+    const sessions = await db.getSessions(userId, limit);
     const items = sessions.map(s => ({
       objectId: s.id,
       objectData: {
@@ -109,10 +109,10 @@ app.get('/api/sessions', (req, res) => {
 });
 
 // POST /api/sessions — Create a new session
-app.post('/api/sessions', (req, res) => {
+app.post('/api/sessions', async (req, res) => {
   try {
     const { title, language, userId } = req.body;
-    const session = db.createSession(title, language, userId);
+    const session = await db.createSession(title, language, userId);
     res.json({
       objectId: session.id,
       objectData: {
@@ -128,10 +128,10 @@ app.post('/api/sessions', (req, res) => {
 });
 
 // PUT /api/sessions/:id — Update session title
-app.put('/api/sessions/:id', (req, res) => {
+app.put('/api/sessions/:id', async (req, res) => {
   try {
     const { title } = req.body;
-    db.updateSessionTitle(req.params.id, title);
+    await db.updateSessionTitle(req.params.id, title);
     res.json({ success: true });
   } catch (error) {
     console.error('PUT /api/sessions/:id error:', error);
@@ -140,9 +140,9 @@ app.put('/api/sessions/:id', (req, res) => {
 });
 
 // DELETE /api/sessions/:id — Delete a session and all its messages
-app.delete('/api/sessions/:id', (req, res) => {
+app.delete('/api/sessions/:id', async (req, res) => {
   try {
-    db.deleteSession(req.params.id);
+    await db.deleteSession(req.params.id);
     res.json({ success: true });
   } catch (error) {
     console.error('DELETE /api/sessions/:id error:', error);
@@ -155,9 +155,9 @@ app.delete('/api/sessions/:id', (req, res) => {
 // ══════════════════════════════════════════════
 
 // GET /api/sessions/:id/messages — Get all messages for a session
-app.get('/api/sessions/:id/messages', (req, res) => {
+app.get('/api/sessions/:id/messages', async (req, res) => {
   try {
-    const messages = db.getMessages(req.params.id);
+    const messages = await db.getMessages(req.params.id);
     const items = messages.map(m => ({
       objectId: m.id,
       objectData: {
@@ -176,18 +176,16 @@ app.get('/api/sessions/:id/messages', (req, res) => {
 });
 
 // POST /api/messages — Save a message to the database
-app.post('/api/messages', (req, res) => {
+app.post('/api/messages', async (req, res) => {
   try {
     const { sessionId, role, content, isError, attachments } = req.body;
 
     let dbContent = content;
-    // For simplicity, store the attachments JSON dynamically inside the content or append it
-    // Using a separator for backward compatibility with existing db structure
     if (attachments && attachments.length > 0) {
       dbContent = JSON.stringify({ text: content, attachedFiles: attachments });
     }
 
-    const message = db.createMessage(sessionId, role, dbContent, isError);
+    const message = await db.createMessage(sessionId, role, dbContent, isError);
     res.json({
       objectId: message.id,
       objectData: {
@@ -207,14 +205,6 @@ app.post('/api/messages', (req, res) => {
 // CHAT ENDPOINT (AI with memory)
 // ══════════════════════════════════════════════
 
-/**
- * POST /api/chat — Main AI endpoint with conversation memory
- *
- * The "memory" is implemented by:
- * 1. Loading the last 20 messages from SQLite for this session
- * 2. Formatting them as conversation history in the prompt
- * 3. Sending the full context to Gemini
- */
 // POST /api/chat — Invoke the AI Chat
 app.post('/api/chat', async (req, res) => {
   const { sessionId, message, language, attachments, skillLevel } = req.body;
@@ -223,7 +213,6 @@ app.post('/api/chat', async (req, res) => {
     const promptLang = language || 'en';
     let systemPrompt = SYSTEM_PROMPTS[promptLang] || SYSTEM_PROMPTS['en'];
 
-    // Adapt system prompt based on user's selected skill level
     if (skillLevel) {
       const skillInstructions = {
         'newbie': '\n\nIMPORTANT INSTRUCTION: The user is completely new to coding. Provide very simple, step-by-step explanations. Avoid jargon, use basic analogies, and explain what EVERY line of code does.',
@@ -239,11 +228,10 @@ app.post('/api/chat', async (req, res) => {
     // 1. Get Conversation Memory
     let history = [];
     if (sessionId) {
-      const msgs = db.getConversationMemory(sessionId, 10);
+      const msgs = await db.getConversationMemory(sessionId, 10);
       history = msgs.map(m => {
         let msgContent = m.content;
         try {
-          // Check if it's the new JSON format
           if (m.content.startsWith('{') && m.content.includes('"text":')) {
             msgContent = JSON.parse(m.content).text;
           }
@@ -255,13 +243,12 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // Process uploaded base64 files and save to disk to prevent RAM overflow
+    // Process uploaded base64 files
     const fs = require('fs');
     let processedAttachments = [];
     if (attachments && attachments.length > 0) {
       for (const att of attachments) {
         if (att.data) {
-          // Replace base64 header
           const base64Data = att.data.replace(/^data:([A-Za-z-+/]+);base64,/, '');
           const filename = `${Date.now()}-${att.name}`;
           const filepath = path.join(__dirname, 'uploads', filename);
@@ -271,7 +258,7 @@ app.post('/api/chat', async (req, res) => {
             name: att.name,
             mimeType: att.mimeType || 'image/jpeg',
             url: `/uploads/${filename}`,
-            base64Data: base64Data // FIX: Do not use att.data, use stripped base64
+            base64Data: base64Data
           });
         }
       }
@@ -288,7 +275,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════
-// SIMPLE /GENERATE ROUTE (OpenRouter Bonus)
+// SIMPLE /GENERATE ROUTE
 // ══════════════════════════════════════════════
 app.post('/api/generate', async (req, res) => {
   try {
@@ -297,7 +284,6 @@ app.post('/api/generate', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // Call the generic AI service with no system prompt and no history
     const aiText = await generateResponse("You are a helpful assistant.", [], prompt);
 
     res.json({ response: aiText });
@@ -312,9 +298,9 @@ app.post('/api/generate', async (req, res) => {
 // ══════════════════════════════════════════════
 
 // GET /api/sessions/:id/metadata — Get session stats
-app.get('/api/sessions/:id/metadata', (req, res) => {
+app.get('/api/sessions/:id/metadata', async (req, res) => {
   try {
-    const meta = db.getSessionMetadata(req.params.id);
+    const meta = await db.getSessionMetadata(req.params.id);
     if (!meta) return res.status(404).json({ error: 'Session not found' });
     res.json(meta);
   } catch (error) {
@@ -348,10 +334,8 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
 
     console.log(`[SPEECH API] Request received: ${req.file.originalname}, Size: ${(req.file.size / 1024).toFixed(2)} KB, Mime: ${req.file.mimetype}`);
 
-    // Convert multer memory buffer seamlessly using OpenAI's toFile utility
     const audioFile = await toFile(req.file.buffer, 'recording.webm', { type: 'audio/webm' });
 
-    // Use the official OpenAI SDK structure which maps perfectly to NVIDIA NIM architecture
     const transcription = await nvidiaOpenAI.audio.transcriptions.create({
       file: audioFile,
       model: 'nvidia/parakeet-ctc-1.1b-asr',
@@ -363,7 +347,6 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
     res.json({ text: transcription.text });
   } catch (error) {
     console.error('API /transcribe error:', error);
-    // Explicitly return OpenAI-styled SDK errors if available
     const errorMsg = error.status ? `NVIDIA API HTTP ${error.status} - ${error.error?.message}` : error.message;
     res.status(500).json({ error: `Speech-to-text failed: ${errorMsg}` });
   }
@@ -371,19 +354,10 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
 
 // ── Health Check ──
 app.get('/api/health', (req, res) => {
-  const fs = require('fs');
-  const dbPath = path.join(__dirname, 'memory.db');
-  let dbSize = 'unknown';
-  try {
-    const stats = fs.statSync(dbPath);
-    dbSize = `${(stats.size / 1024).toFixed(1)} KB`;
-  } catch (e) { /* file might not exist yet */ }
-
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    database: 'connected',
-    dbFileSize: dbSize,
+    database: 'connected (mongodb)',
     memoryWindow: '10 messages'
   });
 });
@@ -394,7 +368,7 @@ async function startServer() {
     // Initialize database first
     await db.initDatabase();
 
-    // Try to initialize AI (warn if API key not set)
+    // Try to initialize AI
     try {
       initializeAI();
     } catch (e) {
@@ -420,8 +394,8 @@ async function startServer() {
 startServer();
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\nShutting down...');
-  db.closeDatabase();
+  await db.closeDatabase();
   process.exit(0);
 });
