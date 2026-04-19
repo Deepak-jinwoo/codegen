@@ -440,7 +440,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       </header>
 
       {/* Chat Canvas */}
-      <section className="flex-1 overflow-y-auto px-4 md:px-6">
+      <section className="flex-1 overflow-y-auto px-4 md:px-6 pb-28 md:pb-6 relative z-10">
         <div className="max-w-4xl mx-auto w-full flex flex-col min-h-full">
 
           {messages.length === 0 && !sessionId ? (
@@ -452,22 +452,6 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
                 <h2 className="font-['Manrope'] font-extrabold text-4xl sm:text-5xl md:text-7xl text-primary leading-tight tracking-tighter text-glow-primary uppercase">
                   How can I help<br/>you code today?
                 </h2>
-              </div>
-
-              {/* Suggested Prompt Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-full px-2 sm:px-0">
-                {promptCards.map((card, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setInput(card.title)}
-                    className={`group relative flex flex-col items-start p-5 sm:p-6 bg-surface-container-low/40 backdrop-blur-md border border-outline-variant/10 rounded-xl ${card.hoverShadow} ${card.hoverBorder} hover:bg-surface-container-high transition-all duration-500 hover:-translate-y-1 text-left overflow-hidden`}
-                  >
-                    <span className={`material-symbols-outlined ${card.iconColor} mb-4 opacity-60 group-hover:opacity-100 transition-opacity`}>{card.icon}</span>
-                    <p className="font-['Space_Grotesk'] text-xs tracking-widest text-slate-500 uppercase mb-1">{card.label}</p>
-                    <h3 className="font-['Manrope'] font-bold text-on-surface text-lg">{card.title}</h3>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
-                  </button>
-                ))}
               </div>
             </div>
           ) : (
@@ -503,7 +487,7 @@ function ChatInterface({ sessionId, language, toggleSidebar, onSessionCreated, o
       </section>
 
       {/* Floating Bottom Input Area */}
-      <div className="shrink-0 px-2 sm:px-4 md:px-12 pb-4 sm:pb-6 pt-2 z-40 w-full overflow-hidden">
+      <div className="fixed bottom-0 left-0 w-full md:relative md:bottom-auto md:left-auto md:w-auto shrink-0 px-3 sm:px-4 md:px-12 pb-5 sm:pb-6 pt-3 z-50 bg-surface/95 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none border-t border-[#00f5ff]/20 md:border-none shadow-[0_-15px_30px_rgba(0,0,0,0.4)] md:shadow-none">
         <div className="w-full max-w-4xl mx-auto relative group flex flex-col gap-2">
           
           {/* Attachment Previews */}
