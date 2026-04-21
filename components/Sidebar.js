@@ -12,7 +12,8 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
   };
 
   const navItems = [
-    { icon: 'terminal', label: 'Terminal', active: !isHistoryOpen && !isSettingsOpen },
+    { icon: 'home', label: 'Home', active: !currentSessionId && !isHistoryOpen && !isSettingsOpen },
+    { icon: 'terminal', label: 'Terminal', active: currentSessionId && !isHistoryOpen && !isSettingsOpen },
     { icon: 'history', label: 'History', active: isHistoryOpen },
     { icon: 'settings', label: 'Settings', active: isSettingsOpen },
   ];
@@ -44,9 +45,10 @@ function Sidebar({ isOpen, onClose, onNewChat, sessions, currentSessionId, onSel
                   : 'text-slate-500 hover:text-slate-300 hover:bg-[#23293c]'
                 }`}
               onClick={
+                item.label === 'Home' ? () => { setIsHistoryOpen(false); setIsSettingsOpen(false); onNewChat(); } : 
                 item.label === 'History' ? () => { setIsHistoryOpen(!isHistoryOpen); setIsSettingsOpen(false); } : 
                 item.label === 'Settings' ? () => { setIsSettingsOpen(!isSettingsOpen); setIsHistoryOpen(false); } : 
-                item.label === 'Terminal' ? () => { setIsHistoryOpen(false); setIsSettingsOpen(false); onNewChat(); } : 
+                item.label === 'Terminal' ? () => { setIsHistoryOpen(false); setIsSettingsOpen(false); } : 
                 undefined
               }
             >

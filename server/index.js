@@ -321,7 +321,7 @@ const upload = multer({
 });
 
 const nvidiaOpenAI = new OpenAI({
-  apiKey: "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",
+  apiKey: process.env.NVIDIA_API_KEY,
   baseURL: "https://integrate.api.nvidia.com/v1"
 });
 
