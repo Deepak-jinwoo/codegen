@@ -62,12 +62,12 @@ async function getMessages(sessionId) {
 }
 
 // Save a message to the database
-async function saveMessage(sessionId, role, content, isError = false) {
+async function saveMessage(sessionId, role, content, isError = false, attachments = []) {
     try {
         const response = await fetch(`${API_BASE}/api/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, role, content, isError })
+            body: JSON.stringify({ sessionId, role, content, isError, attachments })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const message = await response.json();
